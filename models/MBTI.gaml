@@ -9,7 +9,7 @@ model MBTI
 
 global {
 	int nbitem<-20;
-	int nbpeople<-5;
+	int nbpeople<-10;
 	company the_company;
 	geometry shape <- square(200);
 	
@@ -29,7 +29,7 @@ global {
 
 species people skills: [moving] control: simple_bdi{
 	float viewdist <- 20.0;
-	float speed <- 3.0;	
+	float speed <- 3.0;
 	
 	//to simplify the writting of the agent behavior, we define as variables 4 desires for the agents
 	predicate define_item_target <- new_predicate("define_item_target");
@@ -55,7 +55,9 @@ species people skills: [moving] control: simple_bdi{
 		do add_emotion(joie);
 		
 		do add_desire(wander);
+		// countPeople <- 0;
 	}
+		
 	
 	//if the agent perceive a item in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:item in:viewdist {
@@ -63,10 +65,32 @@ species people skills: [moving] control: simple_bdi{
 		ask myself {do remove_intention(wander, false);}
 	}
 	
+	//if the agent perceive a item in its neighborhood, it adds a belief concerning its location and remove its wandering intention
+	perceive target:people in:viewdist {
+		focus id:"location_person" var:location;
+		write("Localizado agente na localização: " + location);
+		
+		list<people> people_around <- (people at_distance viewdist);
+		write length(people_around);
+		// list<point> possible_itens <- get_beliefs(new_predicate("location_item")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+		
+		//countPeople <- countPeople + 1;
+		//write countPeople;		
+		}
+		
 	//if the agent has the belief that their is item at given location, it adds the desire to get item
 	rule belief: new_predicate("location_item") new_desire: get_item strength:10.0;
+
+	//if the agent has the belief that their is item at given location, it adds the desire to get item
+	//rule belief: new_predicate("location_person") new_desire: see_person strength:1.0;
+
 	//if the agent has the belief that it has gold, it adds the desire to return to the base
 	rule belief: has_item new_desire: return_company strength:100;
+	
+	//plan seePerson intention:see_person{
+	//    write "see_person:" + location;
+	//	do current_intention_on_hold();
+	//}
 	
 	// plan that has for goal to fulfill the wander desire	
 	plan letsWander intention:wander 
@@ -94,6 +118,7 @@ species people skills: [moving] control: simple_bdi{
 				do remove_belief(new_predicate("location_item", ["location_value"::target]));
 				target <- nil;
 				do remove_intention(get_item, true);
+				
 			}
 		}	
 	}
@@ -123,11 +148,11 @@ species people skills: [moving] control: simple_bdi{
 	aspect default {
 	  draw circle(2) color: #red border:#black;
 	  draw circle(viewdist) color:rgb(#yellow,0.5);
-	  draw ("B:" + length(belief_base) + ":" + belief_base) color:#black size:4; 
-	  draw ("D:" + length(desire_base) + ":" + desire_base) color:#black size:4 at:{location.x,location.y+4}; 
-	  draw ("I:" + length(intention_base) + ":" + intention_base) color:#black size:4 at:{location.x,location.y+2*4}; 
-	  draw ("curIntention:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+3*4};
-	  draw ("possible_itens:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+4*4}; 		
+	  //draw ("B:" + length(belief_base) + ":" + belief_base) color:#black size:4; 
+	  //draw ("D:" + length(desire_base) + ":" + desire_base) color:#black size:4 at:{location.x,location.y+4}; 
+	  //draw ("I:" + length(intention_base) + ":" + intention_base) color:#black size:4 at:{location.x,location.y+2*4}; 
+	  //draw ("curIntention:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+3*4};
+	  //draw ("possible_itens:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+4*4}; 		
 	}
 }
 
