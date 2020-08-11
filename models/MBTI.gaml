@@ -8,8 +8,8 @@
 model MBTI
 
 global {
-	int nbitem<-20;
-	int nbpeople<-10;
+	int nbitem<-10;
+	int nbpeople<-3;
 	company the_company;
 	geometry shape <- square(200);
 	
@@ -19,7 +19,13 @@ global {
 			the_company <- self;
 		}
 		create item number: nbitem;
-		create people number: nbpeople;			
+
+		create people number: nbpeople {
+			do init(['I','S','T','J']);
+		}		
+		create people number: nbpeople {
+			do init(['E','S','T','P']);
+		}	
 	}
 	
 	reflex stop when:length(item)=0{
@@ -29,7 +35,15 @@ global {
 
 species people skills: [moving] control: simple_bdi{
 	float viewdist <- 20.0;
-	float speed <- 3.0;
+	float speed <- 3.0 min:2.0 max: 100.0;
+	int count_people_around <- 0 ;
+	bool got_item <- false;
+
+	// MBTI
+	string E_I;
+	bool extroverted_prob;
+	
+	rgb color;
 	
 	//to simplify the writting of the agent behavior, we define as variables 4 desires for the agents
 	predicate define_item_target <- new_predicate("define_item_target");
@@ -45,19 +59,65 @@ species people skills: [moving] control: simple_bdi{
 	point target;
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
-	init
+	action init (list<string> mbti)
 	{
-		agent friend <- nil;
 		
-		do add_social_link(new_social_link(friend));
+		E_I <- mbti at 0; // E (extroverted) or I (introverted)
+		color <- (E_I='E') ? #orange : #green;	
+
+		//do add_social_link(new_social_link(friend));
 		
-		emotion joie <- new_emotion("joie",wander);
-		do add_emotion(joie);
+		//emotion joie <- new_emotion("joie",wander);
+		//do add_emotion(joie);
 		
 		do add_desire(wander);
-		// countPeople <- 0;
 	}
+	
+	
+	float get_speed(string personality, int qty_agents){
+				
+		// When an agent is E it has 80% probability to be extroverted. 
+		extroverted_prob <- personality='E' ? flip(0.8) : flip(0.2);
 		
+		// An extroverted agent increase speed with more agents around.
+		if(extroverted_prob){
+			switch count_people_around {
+				match_between [0,3]{
+					speed <- speed  + (speed * 0.2);
+				}
+				match_between [3,5]{
+					speed <- speed  + (speed * 0.4);
+				}
+				match_between [5,8]{
+					speed <- speed  + (speed * 0.6);
+				}
+				match_between [8,-#infinity]{
+					speed <- speed  + (speed * 0.8);
+				}
+			}
+		}
+		// For an introverted agent is the opposite, your speed will be decreased.
+		else{
+			switch count_people_around {
+				match_between [0,3]{
+					speed <- speed  - (speed * 0.2);
+				}
+				match_between [3,5]{
+					speed <- speed  - (speed * 0.4);
+				}
+				match_between [5,8]{
+					speed <- speed  - (speed * 0.6);
+				}
+				match_between [8,-#infinity]{
+					speed <- speed  - (speed * 0.8);
+				}
+			}			
+		}
+		
+		
+		
+		return speed;
+	}
 	
 	//if the agent perceive a item in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:item in:viewdist {
@@ -65,37 +125,24 @@ species people skills: [moving] control: simple_bdi{
 		ask myself {do remove_intention(wander, false);}
 	}
 	
-	//if the agent perceive a item in its neighborhood, it adds a belief concerning its location and remove its wandering intention
-	perceive target:people in:viewdist {
-		focus id:"location_person" var:location;
-		write("Localizado agente na localização: " + location);
-		
-		list<people> people_around <- (people at_distance viewdist);
-		write length(people_around);
-		// list<point> possible_itens <- get_beliefs(new_predicate("location_item")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
-		
-		//countPeople <- countPeople + 1;
-		//write countPeople;		
-		}
-		
+	reflex count_people_around_me{
+		count_people_around <- length(self neighbors_at(viewdist*2));
+		speed <- get_speed(E_I, count_people_around);
+
+		write "Probabilidade Extrovertido: " + extroverted_prob;
+		write "Velocidade: " + speed;		
+	}
+	
 	//if the agent has the belief that their is item at given location, it adds the desire to get item
 	rule belief: new_predicate("location_item") new_desire: get_item strength:10.0;
-
-	//if the agent has the belief that their is item at given location, it adds the desire to get item
-	//rule belief: new_predicate("location_person") new_desire: see_person strength:1.0;
 
 	//if the agent has the belief that it has gold, it adds the desire to return to the base
 	rule belief: has_item new_desire: return_company strength:100;
 	
-	//plan seePerson intention:see_person{
-	//    write "see_person:" + location;
-	//	do current_intention_on_hold();
-	//}
-	
 	// plan that has for goal to fulfill the wander desire	
 	plan letsWander intention:wander 
 	{
-		do wander amplitude: 60.0;
+		do wander amplitude: 60.0 speed: speed;
 	}
 	
 	//plan that has for goal to fulfill the get item desire
@@ -107,16 +154,19 @@ species people skills: [moving] control: simple_bdi{
 			do current_intention_on_hold();
 		} else {
 			do goto target: target;
-			
+						
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
 			if (target = location)  {
+				got_item <- true;
+
 				item current_item <- item first_with (target = each.location);
 				if current_item != nil {
-				 	do add_belief(has_item);
-					ask current_item {do die;}	
+					do add_belief(has_item);			 	
+					ask current_item {do die;}
 				}
+				
 				do remove_belief(new_predicate("location_item", ["location_value"::target]));
-				target <- nil;
+				target <- nil;				
 				do remove_intention(get_item, true);
 				
 			}
@@ -135,19 +185,34 @@ species people skills: [moving] control: simple_bdi{
 		do remove_intention(define_item_target, true);
 	}
 	
-	////plan that has for goal to fulfill the return to base desire
+	//plan that has for goal to fulfill the return to base desire
 	plan return_to_company intention: return_company{
+		write "Localização agente:" + location;
+		people current_people <- people first_with (location = location);
+		
 		do goto target: the_company ;
 		if (the_company.location = location)  {
+			got_item <- false;			
 			do remove_belief(has_item);
 			do remove_intention(return_company, true);
 			the_company.itens <- the_company.itens + 1;
 		}
 	}
 	
-	aspect default {
-	  draw circle(2) color: #red border:#black;
-	  draw circle(viewdist) color:rgb(#yellow,0.5);
+	aspect default {	  
+	  	
+	  draw circle(3) color: color;
+	  draw circle(1) color: (got_item) ? #yellow : color;
+	  
+	  // enable view distance
+	  // draw circle(viewdist) color:rgb(#white,0.5) border: #red;
+
+	  draw ("MBTI:" + E_I) color:#black size:4;
+	  draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
+	  draw ("Velocidade:" + speed) color:#black size:4 at:{location.x,location.y+2*4}; 
+	  
+	  //write("Intenção Corrente:" + get_values(has_item)  ) ;
+	   
 	  //draw ("B:" + length(belief_base) + ":" + belief_base) color:#black size:4; 
 	  //draw ("D:" + length(desire_base) + ":" + desire_base) color:#black size:4 at:{location.x,location.y+4}; 
 	  //draw ("I:" + length(intention_base) + ":" + intention_base) color:#black size:4 at:{location.x,location.y+2*4}; 
@@ -170,7 +235,7 @@ species company {
 	}
 }
 
-grid grille width: 25 height: 25 neighbors:4 {
+grid grille width: 40 height: 40 neighbors:4 {
 	rgb color <- #white;
 }
 
