@@ -65,11 +65,6 @@ species people skills: [moving] control: simple_bdi{
 		E_I <- mbti at 0; // E (extroverted) or I (introverted)
 		color <- (E_I='E') ? #orange : #green;	
 
-		//do add_social_link(new_social_link(friend));
-		
-		//emotion joie <- new_emotion("joie",wander);
-		//do add_emotion(joie);
-		
 		do add_desire(wander);
 	}
 	
@@ -82,7 +77,10 @@ species people skills: [moving] control: simple_bdi{
 		// An extroverted agent increase speed with more agents around.
 		if(extroverted_prob){
 			switch count_people_around {
-				match_between [0,3]{
+				match 0 {
+					speed <- speed  - (speed * 0.8);
+				}
+				match_between [1,3]{
 					speed <- speed  + (speed * 0.2);
 				}
 				match_between [3,5]{
@@ -99,7 +97,10 @@ species people skills: [moving] control: simple_bdi{
 		// For an introverted agent is the opposite, your speed will be decreased.
 		else{
 			switch count_people_around {
-				match_between [0,3]{
+				match 0 {
+					speed <- speed  + (speed * 0.8);
+				}
+				match_between [1,3]{
 					speed <- speed  - (speed * 0.2);
 				}
 				match_between [3,5]{
@@ -112,9 +113,7 @@ species people skills: [moving] control: simple_bdi{
 					speed <- speed  - (speed * 0.8);
 				}
 			}			
-		}
-		
-		
+		}				
 		
 		return speed;
 	}
@@ -202,7 +201,7 @@ species people skills: [moving] control: simple_bdi{
 	aspect default {	  
 	  	
 	  draw circle(3) color: color;
-	  draw circle(1) color: (got_item) ? #yellow : color;
+	  draw triangle(1) color: (got_item) ? #yellow : color;
 	  
 	  // enable view distance
 	  // draw circle(viewdist) color:rgb(#white,0.5) border: #red;
@@ -223,7 +222,7 @@ species people skills: [moving] control: simple_bdi{
 
 species item {	
 	aspect default {
-		draw triangle(0.5) color: color border: #black;
+		draw triangle(0.5) color: #yellow border: #black;
 	}	
 }
 
