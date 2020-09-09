@@ -10,7 +10,7 @@ model MBTI
 global {
 
 	int nbitem <- 10;
-	int nbsellers <-2;
+	int nbsellers <-3;
 	int nbbuyers <-15;
 	
 	int steps <- 0;
@@ -23,15 +23,15 @@ global {
 		create buyers number: nbbuyers;
 
 		create sellers number: nbsellers {
-			do init(['I','S','T','J']);
+			do init(['I','N','T','J']);
 		}		
 		
-		//create sellers number: nbsellers {
-		//	do init(['E','S','T','P']);
-		//}	
+		create sellers number: nbsellers {
+			do init(['E','S','T','P']);
+		}	
 	}
 	
-	reflex stop when:steps=1{
+	reflex stop when:steps=100{
 		do pause;
 	}
 	
@@ -48,11 +48,12 @@ species sellers skills: [moving] control: simple_bdi{
 	bool got_buyer <- false;
 	//image_file my_icon <- image_file("../includes/seller.png");
 
-	// matrix all_distances <- {lenght(sellers),3}
-
 	// MBTI
 	string E_I;
 	bool extroverted_prob;
+	
+	string S_N;
+	bool sensing_prob;
 	
 	rgb color;
 	
@@ -68,11 +69,21 @@ species sellers skills: [moving] control: simple_bdi{
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti)
-	{
-		
-		E_I <- mbti at 0; // E (extroverted) or I (introverted)
+	{		
+		// E (extroverted) or I (introverted)
+		E_I <- mbti at 0; 
 		color <- (E_I='E') ? #orange : #green;	
-
+		
+		// S (sensing) or N (iNtuiton)
+		S_N <- mbti at 1; 
+		// When an agent is S it has 80% probability to be sensing. 
+		sensing_prob <- S_N='S' ? flip(0.8) : flip(0.2);
+		color <- (S_N='S') ? #yellow : #purple;
+		
+		// All the agents must know the existing clusters
+		do get_biggest_cluster();
+		
+		// Begin to wander
 		do add_desire(wander);
 	}
 	
@@ -132,41 +143,16 @@ species sellers skills: [moving] control: simple_bdi{
 		ask myself {do remove_intention(wander, false);}
 	}
 	
-	  reflex calculate_distances {
-	  	
+	list get_biggest_cluster{	  	
 	  	list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers, 30));
-	  	
-	  	loop cluster over: clusters {
-	  	   rgb rnd_color <- rgb(rnd(255),rnd(255),rnd(255));
-	  	   ask cluster as: buyers {color <- rnd_color;}               		
-        }
-	  	
+	  	return clusters with_max_of(length(each));
+	  	// Alter the colors to check if everything is OK
+	  	//loop cluster over: clusters {
+	  	//   write cluster;
+	  	//   rgb rnd_color <- rgb(rnd(255),rnd(255),rnd(255));
+	  	//   ask cluster as: buyers {color <- rnd_color;}               		
+        //}	  	
 	  }
-//	  	list neighbors2 <- (self neighbors_at 1000) of_species (buyers);
-//	  	list var0 <- (self neighbors_at 1000) of_species (species (self)); 
-//	  	write("VIZINHOS DO TIPO BUYER" + var0);
-//	  	int qty_sellers <- length(sellers);
-//	  	write qty_sellers;
-//	  	// Here we will create a matriz with all distances between sellers to be used to calculated S/N dichtomy
-//	  	matrix<float> all_distances <- {qty_sellers, qty_sellers} matrix_with 0.0;
-//	  	//map<string, map<string, float> > all_distances;
-//	  	
-//	  	// In this first loop we get all sellers
-//	  	loop seller over: sellers {
-//	  		// So its neighboors as well
-//	  		list neighbors <- neighbors_of (topology(self), seller ,10000);			
-//	  		//list neighbors2 <- neighbors_of (topology(buyers), seller ,1000);
-//	  		
-//	  		// Now we create a new loop to calculate each distance
-//	  		loop neighbor over:neighbors {				
-//	  			//write("Buyer:" + seller_name + " - Vizinho:" + neighbor_name+ " - Distancia de:" + distance);
-//	  			//add seller:[neighbor::(seller distance_to neighbor)] to: all_distances;
-//	  			//all_distances <<+ (string(seller.name)::[string(neighbor.name)::float(seller distance_to neighbor)]);
-//	  			write(neighbor.name + "-" + length(neighbor neighbors_at(50)) );
-//	  		}			
-//	  	}
-//	  	
-//	  }
 	  
 	reflex count_people_around_me{
 		count_people_around <- length(self neighbors_at(viewdist*2));
@@ -220,11 +206,22 @@ species sellers skills: [moving] control: simple_bdi{
 		remove all:visited_target from: possible_buyers;
 		
 		write "New possible targets: " + possible_buyers;
-		
+
 		if (empty(possible_buyers)) {
 			do remove_intention(wander, true);
 		} else {
-			target <- (possible_buyers with_min_of (each distance_to self)).location;
+		
+			// S agents focus on short-term (min distance to target) and  
+			// N agents focus on "big-picture" and long-term gains (density is more important)
+			list cluster <- get_biggest_cluster();
+			
+			if(sensing_prob){
+				target <- (possible_buyers with_min_of (each distance_to self)).location;
+			} else {
+				target <- cluster with_min_of (point(each) distance_to self);
+			}
+			
+			
 			write "New target: " + target;
 		}
 		do remove_intention(define_buyer_target, true);
