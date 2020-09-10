@@ -10,7 +10,7 @@ model MBTI
 global {
 
 	int nbitem <- 10;
-	int nbsellers <-3;
+	int nbsellers <-1;
 	int nbbuyers <-15;
 	
 	int steps <- 0;
@@ -31,7 +31,7 @@ global {
 		}	
 	}
 	
-	reflex stop when:steps=100{
+	reflex stop when:steps=1000{
 		do pause;
 	}
 	
@@ -42,7 +42,7 @@ global {
 }
 
 species sellers skills: [moving] control: simple_bdi{
-	float viewdist <- 100.0;
+	float viewdist <- 10.0;
 	float speed <- 3.0 min:2.0 max: 100.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
@@ -54,6 +54,7 @@ species sellers skills: [moving] control: simple_bdi{
 	
 	string S_N;
 	bool sensing_prob;
+	bool already_visited_cluster <- false;
 	
 	rgb color;
 	
@@ -97,19 +98,19 @@ species sellers skills: [moving] control: simple_bdi{
 		if(extroverted_prob){
 			switch count_people_around {
 				match 0 {
-					speed <- speed  - (speed * 0.8);
+					speed <- speed  - (speed * 0.3);
 				}
 				match_between [1,3]{
 					speed <- speed  + (speed * 0.2);
 				}
 				match_between [3,5]{
-					speed <- speed  + (speed * 0.4);
+					speed <- speed  + (speed * 0.25);
 				}
 				match_between [5,8]{
-					speed <- speed  + (speed * 0.6);
+					speed <- speed  + (speed * 0.28);
 				}
 				match_between [8,-#infinity]{
-					speed <- speed  + (speed * 0.8);
+					speed <- speed  + (speed * 0.3);
 				}
 			}
 		}
@@ -117,19 +118,19 @@ species sellers skills: [moving] control: simple_bdi{
 		else{
 			switch count_people_around {
 				match 0 {
-					speed <- speed  + (speed * 0.8);
+					speed <- speed  + (speed * 0.3);
 				}
 				match_between [1,3]{
 					speed <- speed  - (speed * 0.2);
 				}
 				match_between [3,5]{
-					speed <- speed  - (speed * 0.4);
+					speed <- speed  - (speed * 0.25);
 				}
 				match_between [5,8]{
-					speed <- speed  - (speed * 0.6);
+					speed <- speed  - (speed * 0.28);
 				}
 				match_between [8,-#infinity]{
-					speed <- speed  - (speed * 0.8);
+					speed <- speed  - (speed * 0.3);
 				}
 			}			
 		}				
@@ -215,10 +216,11 @@ species sellers skills: [moving] control: simple_bdi{
 			// N agents focus on "big-picture" and long-term gains (density is more important)
 			list cluster <- get_biggest_cluster();
 			
-			if(sensing_prob){
+			if(sensing_prob or already_visited_cluster){
 				target <- (possible_buyers with_min_of (each distance_to self)).location;
 			} else {
 				target <- cluster with_min_of (point(each) distance_to self);
+				already_visited_cluster <- true;				
 			}
 			
 			
@@ -235,7 +237,7 @@ species sellers skills: [moving] control: simple_bdi{
 	  // enable view distance
 	  // draw circle(viewdist) color:rgb(#white,0.5) border: #red;
 
-	  draw ("MBTI:" + E_I) color:#black size:4;
+	  draw ("MBTI:" + E_I + "(" + extroverted_prob + ")" + S_N + sensing_prob + ")") color:#black size:4;
 	  draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
 	  draw ("Velocidade:" + speed) color:#black size:4 at:{location.x,location.y+2*4}; 
 	  
