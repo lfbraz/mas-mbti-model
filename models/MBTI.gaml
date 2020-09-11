@@ -26,23 +26,24 @@ global {
 			do init(['I','N','T','J']);
 		}		
 		
-		create sellers number: nbsellers {
-			do init(['E','S','T','P']);
-		}	
+		//create sellers number: nbsellers {
+		//	do init(['E','S','T','P']);
+		//}	
 	}
 	
-	reflex stop when:steps=1000{
+	reflex stop when:steps=1{
 		do pause;
 	}
 	
 	reflex count{
 		steps  <- steps + 1;
-		write steps;
+		write "step:" + steps;
 	}
 }
 
 species sellers skills: [moving] control: simple_bdi{
-	float viewdist <- 10.0;
+	float viewdist_coworkers <- 10.0;
+	float viewdist_buyers <- 50.0;
 	float speed <- 3.0 min:2.0 max: 100.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
@@ -67,6 +68,7 @@ species sellers skills: [moving] control: simple_bdi{
 	
 	point target;
 	list<point> visited_target;
+	list<point> perceived_buyers;
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti)
@@ -79,10 +81,10 @@ species sellers skills: [moving] control: simple_bdi{
 		S_N <- mbti at 1; 
 		// When an agent is S it has 80% probability to be sensing. 
 		sensing_prob <- S_N='S' ? flip(0.8) : flip(0.2);
-		color <- (S_N='S') ? #yellow : #purple;
+		color <- (S_N='S') ? #yellow : #red;
 		
 		// All the agents must know the existing clusters
-		do get_biggest_cluster();
+		//do get_biggest_cluster();
 		
 		// Begin to wander
 		do add_desire(wander);
@@ -138,25 +140,36 @@ species sellers skills: [moving] control: simple_bdi{
 		return speed;
 	}
 	
+	
+	
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
-	perceive target:buyers {
-		focus id:"location_buyer" var:location;
-		ask myself {do remove_intention(wander, false);}
+	perceive target:buyers in: viewdist_buyers*2{
+		focus id:"location_buyer" var:location;		
+		ask myself {do remove_intention(wander, false);	}
 	}
 	
-	list get_biggest_cluster{	  	
-	  	list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers, 30));
-	  	return clusters with_max_of(length(each));
+	list get_biggest_cluster(list possible_buyers){	  	
+	  	list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(possible_buyers, 30));
 	  	// Alter the colors to check if everything is OK
 	  	//loop cluster over: clusters {
 	  	//   write cluster;
 	  	//   rgb rnd_color <- rgb(rnd(255),rnd(255),rnd(255));
 	  	//   ask cluster as: buyers {color <- rnd_color;}               		
-        //}	  	
+        //}	 
+	  	return clusters with_max_of(length(each));	  	 	
 	  }
 	  
+	list get_buyers_from_points(list list_of_points){
+		list<buyers> list_of_buyers; 
+		loop buyer over: list_of_points{
+			add buyers(buyer) to: list_of_buyers;
+		}
+		return list_of_buyers;	
+	}		
+	  
 	reflex count_people_around_me{
-		count_people_around <- length(self neighbors_at(viewdist*2));
+		write "LISTA DE PERCEIVED" + perceived_buyers;
+		count_people_around <- length(self neighbors_at(viewdist_coworkers));
 		speed <- get_speed(E_I, count_people_around);	
 		}
 	
@@ -181,7 +194,6 @@ species sellers skills: [moving] control: simple_bdi{
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
 			if (target = location)  {
 				got_buyer <- true;
-				write "Encontrei !!";
 				
 				buyers current_buyer <- buyers first_with (target = each.location);
 				if current_buyer != nil {
@@ -196,25 +208,27 @@ species sellers skills: [moving] control: simple_bdi{
 			}
 		}
 	}
-
+	
+		
 	//plan that has for goal to fulfill the define item target desire. This plan is instantaneous (does not take a complete simulation step to apply).
 	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
 		list<point> possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
-
-		write "I am " + self.name + " and my target are: " + possible_buyers;
-		write "Here a list of my already visited targets: " + visited_target;
-		
+	
 		remove all:visited_target from: possible_buyers;
 		
-		write "New possible targets: " + possible_buyers;
-
 		if (empty(possible_buyers)) {
 			do remove_intention(wander, true);
 		} else {
 		
+			write "TESTANDO A CLUSTERIZAÇÃO POR possible_buyers";
+			write "LISTA DE possible_buyers:" + possible_buyers;
+			list<buyers> list_of_buyers <- get_buyers_from_points(possible_buyers);
+			write "LISTA DE list_of_buyers :" + list_of_buyers;
+			
 			// S agents focus on short-term (min distance to target) and  
 			// N agents focus on "big-picture" and long-term gains (density is more important)
-			list cluster <- get_biggest_cluster();
+			list cluster <- get_biggest_cluster(list_of_buyers);
+			write("MAIOR CLUSTER ENCONTRADO:" + cluster);
 			
 			if(sensing_prob or already_visited_cluster){
 				target <- (possible_buyers with_min_of (each distance_to self)).location;
@@ -223,8 +237,6 @@ species sellers skills: [moving] control: simple_bdi{
 				already_visited_cluster <- true;				
 			}
 			
-			
-			write "New target: " + target;
 		}
 		do remove_intention(define_buyer_target, true);
 	}
@@ -235,7 +247,7 @@ species sellers skills: [moving] control: simple_bdi{
 	  // draw my_icon size: 5;
 	  
 	  // enable view distance
-	  // draw circle(viewdist) color:rgb(#white,0.5) border: #red;
+	  draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
 
 	  draw ("MBTI:" + E_I + "(" + extroverted_prob + ")" + S_N + sensing_prob + ")") color:#black size:4;
 	  draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
