@@ -16,7 +16,7 @@ global {
 	int steps <- 0;
 	int max_steps <- 100;
 	
-	geometry shape <- square(200);
+	geometry shape <- square(400);
 	
 	init {
 		
@@ -26,12 +26,12 @@ global {
 			do init(['I','N','T','J']);
 		}		
 		
-		//create sellers number: nbsellers {
-		//	do init(['E','S','T','P']);
-		//}	
+		create sellers number: nbsellers {
+			do init(['E','S','T','P']);
+		}	
 	}
 	
-	reflex stop when:steps=1{
+	reflex stop when:steps=100{
 		do pause;
 	}
 	
@@ -43,7 +43,7 @@ global {
 
 species sellers skills: [moving] control: simple_bdi{
 	float viewdist_coworkers <- 10.0;
-	float viewdist_buyers <- 50.0;
+	float viewdist_buyers <- 30.0;
 	float speed <- 3.0 min:2.0 max: 100.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
@@ -213,11 +213,16 @@ species sellers skills: [moving] control: simple_bdi{
 	//plan that has for goal to fulfill the define item target desire. This plan is instantaneous (does not take a complete simulation step to apply).
 	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
 		list<point> possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
-	
+		
+		write 'ANTES REMOÇÃO: possible_buyers:' + possible_buyers + ' - agent:' + self.name;
 		remove all:visited_target from: possible_buyers;
+		write 'DEPOIS REMOÇÃO: possible_buyers:' + possible_buyers + ' - agent:' + self.name;
 		
 		if (empty(possible_buyers)) {
-			do remove_intention(wander, true);
+			do remove_intention(sell_item, true);
+			do remove_intention(define_buyer_target, true);
+			do add_desire(wander);
+			write "ADICIONEI O DESEJO wander";
 		} else {
 		
 			write "TESTANDO A CLUSTERIZAÇÃO POR possible_buyers";
@@ -230,7 +235,7 @@ species sellers skills: [moving] control: simple_bdi{
 			list cluster <- get_biggest_cluster(list_of_buyers);
 			write("MAIOR CLUSTER ENCONTRADO:" + cluster);
 			
-			if(sensing_prob or already_visited_cluster){
+			if(sensing_prob or already_visited_cluster) {
 				target <- (possible_buyers with_min_of (each distance_to self)).location;
 			} else {
 				target <- cluster with_min_of (point(each) distance_to self);
