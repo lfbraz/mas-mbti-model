@@ -55,6 +55,10 @@ species sellers skills: [moving] control: simple_bdi{
 	
 	string S_N;
 	bool sensing_prob;
+
+	string J_P;
+	bool judging_prob;
+
 	bool already_visited_cluster <- false;
 	
 	rgb color;
@@ -82,6 +86,12 @@ species sellers skills: [moving] control: simple_bdi{
 		// When an agent is S it has 80% probability to be sensing. 
 		sensing_prob <- S_N='S' ? flip(0.8) : flip(0.2);
 		color <- (S_N='S') ? #yellow : #red;
+		
+		// J (judging) or P (perceiving)
+		J_P <- mbti at 2; 
+		// When an agent is S it has 80% probability to be sensing. 
+		judging_prob <- J_P='J' ? flip(0.8) : flip(0.2);
+		color <- (J_P='S') ? #purple : #gray;
 		
 		// All the agents must know the existing clusters
 		//do get_biggest_cluster();
@@ -189,8 +199,15 @@ species sellers skills: [moving] control: simple_bdi{
 			do add_subintention(get_current_intention(), define_buyer_target, true);
 			do current_intention_on_hold();
 		} else {
-			do goto target: target;
-						
+			
+			if(judging_prob){
+				do goto target: target;				
+			}else {
+				do goto target: target;
+			}
+			
+			write self.name + " INDO PRO TARGET";
+		
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
 			if (target = location)  {
 				got_buyer <- true;
