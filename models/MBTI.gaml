@@ -26,9 +26,9 @@ global {
 			do init(['I','N','T','J']);
 		}		
 		
-		create sellers number: nbsellers {
-			do init(['E','S','T','P']);
-		}	
+		//create sellers number: nbsellers {
+		//	do init(['E','S','T','P']);
+		//}	
 	}
 	
 	reflex stop when:steps=100{
