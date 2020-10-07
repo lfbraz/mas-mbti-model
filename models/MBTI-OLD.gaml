@@ -289,9 +289,6 @@ species sellers skills: [moving] control: simple_bdi{
 species buyers skills: [moving] control: simple_bdi {	
 	rgb color <- #blue;
 	float speed <- 3.0;
-	int nbPeople <- rnd (1, 30);
-	
-	image_file buyer_icon <- image_file("../includes/buyer.png");
 	
 	predicate wander <- new_predicate("wander");
 	
@@ -308,9 +305,15 @@ species buyers skills: [moving] control: simple_bdi {
 	}
 	
 	aspect default {  
-	  draw circle(5) color: #green at:{location.x,location.y+20};
-	  draw (string(self.nbPeople)) color:#white size:4 at:{location.x-3,location.y+22}; 
-	  draw buyer_icon size: 40;
+	  draw circle(3) color: color;
+	}
+}
+
+species company {
+	int itens;
+	aspect default
+	{
+	  draw square(20) color: #blue;
 	}
 }
 
@@ -324,6 +327,7 @@ experiment MBTI type: gui {
 	output {
 		display map {
 			grid grille lines: #darkgreen;
+			species company;			
 			species sellers aspect:default;
 			species buyers aspect:default;
 		}		
