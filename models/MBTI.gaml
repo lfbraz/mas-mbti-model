@@ -11,15 +11,15 @@ global {
 
 	int nbitem <- 10;
 	int nbsellers <-1;
-	int nbbuyers <-15;
+	int nbbuyers <-50;
 	
 	int steps <- 0;
 	int max_steps <- 100;
 	
 	geometry shape <- square(400);
+	map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../db/mas-mbti-recruitment.db'];
 	
 	init {
-		
 		create buyers number: nbbuyers;
 
 		create sellers number: nbsellers {
@@ -41,7 +41,7 @@ global {
 	}
 }
 
-species sellers skills: [moving] control: simple_bdi{
+species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	float viewdist_coworkers <- 10.0;
 	float viewdist_buyers <- 30.0;
 	float speed <- 3.0 min:2.0 max: 100.0;
@@ -74,9 +74,15 @@ species sellers skills: [moving] control: simple_bdi{
 	list<point> visited_target;
 	list<point> perceived_buyers;
 	
+	int weight_qty_buyers <- 100;
+	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti)
 	{		
+		
+		// clean table
+		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_AGENT_SCORE";
+		
 		// E (extroverted) or I (introverted)
 		E_I <- mbti at 0; 
 		color <- (E_I='E') ? #orange : #green;	
@@ -175,6 +181,45 @@ species sellers skills: [moving] control: simple_bdi{
 			add buyers(buyer) to: list_of_buyers;
 		}
 		return list_of_buyers;	
+	}
+	
+	list remove_visited_target(list list_of_points){
+		write 'ANTES REMOÇÃO: possible_buyers:' + list_of_points + ' - agent:' + self.name;
+		remove all:visited_target from: list_of_points;
+		write 'DEPOIS REMOÇÃO: possible_buyers:' + list_of_points + ' - agent:' + self.name;
+		return list_of_points;
+	}
+	
+	action get_score_introversion_extroversion(list list_of_points){
+		write "ESTOU NO GET_DISTANCES";
+		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
+		buyers_in_my_view <- reverse (buyers_in_my_view sort_by (each distance_to self));
+		write buyers_in_my_view;
+		
+		//write self distance_to buyers(buyers_in_my_view);
+		int rank <- 1;
+		loop buyer over: buyers_in_my_view {
+			float score;
+			float distance_buyer_to_me <- self distance_to buyers(buyer);			
+			write("Distância entre o seller: " + self.name + " e o buyer: " + buyers(buyer).name 
+					+ " é de: " + string(distance_buyer_to_me)
+					+ " e a quantidade de pessoas no buyers é : " + string(buyers(buyer).qty_buyers)
+			);		
+			
+			score <- (distance_buyer_to_me * rank) - (buyers(buyer).qty_buyers * weight_qty_buyers);
+			
+			// log into db the calculated score
+			do insert (params: PARAMS,
+							into: "TB_AGENT_SCORE",
+							columns: ["INTERACTION", "SELLER_NAME", "DISTANCE_TO_BUYER", "NUMBER_OF_PEOPLE_AT_BUYER", "BUYER_NAME", "SCORE"],
+							values:  [steps, self.name, distance_buyer_to_me, buyers(buyer).qty_buyers, buyers(buyer).name, score]);
+							
+			rank <- rank + 1;
+		
+		}
+		
+		write 'DEPOIS REMOÇÃO: possible_buyers:' + list_of_points + ' - agent:' + self.name;
+		return list_of_points;
 	}		
 	  
 	reflex count_people_around_me{
@@ -231,9 +276,12 @@ species sellers skills: [moving] control: simple_bdi{
 	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
 		list<point> possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
 		
-		write 'ANTES REMOÇÃO: possible_buyers:' + possible_buyers + ' - agent:' + self.name;
-		remove all:visited_target from: possible_buyers;
-		write 'DEPOIS REMOÇÃO: possible_buyers:' + possible_buyers + ' - agent:' + self.name;
+		//write 'ANTES REMOÇÃO: possible_buyers:' + possible_buyers + ' - agent:' + self.name;
+		//remove all:visited_target from: possible_buyers;
+		//write 'DEPOIS REMOÇÃO: possible_buyers:' + possible_buyers + ' - agent:' + self.name;
+		possible_buyers <- remove_visited_target(possible_buyers);
+		do get_score_introversion_extroversion(possible_buyers);
+		write 'AQUIIIIIIIIIIIII' + possible_buyers;
 		
 		if (empty(possible_buyers)) {
 			do remove_intention(sell_item, true);
@@ -289,7 +337,7 @@ species sellers skills: [moving] control: simple_bdi{
 species buyers skills: [moving] control: simple_bdi {	
 	rgb color <- #blue;
 	float speed <- 3.0;
-	int nbPeople <- rnd (1, 30);
+	int qty_buyers <- rnd (1, 30);
 	
 	image_file buyer_icon <- image_file("../includes/buyer.png");
 	
@@ -308,8 +356,10 @@ species buyers skills: [moving] control: simple_bdi {
 	}
 	
 	aspect default {  
+	  draw rectangle(30, 15) color: #orange at:{location.x,location.y-20};
+	  draw (string(self.name)) color:#black size:4 at:{location.x-10,location.y-18};
 	  draw circle(5) color: #green at:{location.x,location.y+20};
-	  draw (string(self.nbPeople)) color:#white size:4 at:{location.x-3,location.y+22}; 
+	  draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; 
 	  draw buyer_icon size: 40;
 	}
 }
