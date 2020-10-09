@@ -11,7 +11,7 @@ global {
 
 	int nbitem <- 10;
 	int nbsellers <-1;
-	int nbbuyers <-50;
+	int nbbuyers <-100;
 	
 	int steps <- 0;
 	int max_steps <- 100;
@@ -97,7 +97,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		J_P <- mbti at 2; 
 		// When an agent is S it has 80% probability to be sensing. 
 		judging_prob <- J_P='J' ? flip(0.8) : flip(0.2);
-		color <- (J_P='S') ? #purple : #gray;
+		color <- (J_P='S') ? #purple : #black;
 		
 		// All the agents must know the existing clusters
 		//do get_biggest_cluster();
@@ -198,6 +198,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		//write self distance_to buyers(buyers_in_my_view);
 		int rank <- 1;
+		map<buyers, float> agents_score;
+		
 		loop buyer over: buyers_in_my_view {
 			float score;
 			float distance_buyer_to_me <- self distance_to buyers(buyer);			
@@ -208,6 +210,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			
 			score <- (distance_buyer_to_me * rank) - (buyers(buyer).qty_buyers * weight_qty_buyers);
 			
+			// Map agents and scores
+			add buyers(buyer)::score to: agents_score;
+			
 			// log into db the calculated score
 			do insert (params: PARAMS,
 							into: "TB_AGENT_SCORE",
@@ -215,11 +220,12 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 							values:  [steps, self.name, distance_buyer_to_me, buyers(buyer).qty_buyers, buyers(buyer).name, score]);
 							
 			rank <- rank + 1;
-		
 		}
 		
-		write 'DEPOIS REMOÇÃO: possible_buyers:' + list_of_points + ' - agent:' + self.name;
-		return list_of_points;
+		write 'get_score_introversion_extroversion:' + self.name + " - " + agents_score;
+		map<buyers, float> best_score <- map<buyers, float>(agents_score.pairs with_max_of(each.value));
+		
+		return best_score;
 	}		
 	  
 	reflex count_people_around_me{
@@ -280,8 +286,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		//remove all:visited_target from: possible_buyers;
 		//write 'DEPOIS REMOÇÃO: possible_buyers:' + possible_buyers + ' - agent:' + self.name;
 		possible_buyers <- remove_visited_target(possible_buyers);
-		do get_score_introversion_extroversion(possible_buyers);
-		write 'AQUIIIIIIIIIIIII' + possible_buyers;
+		map<buyers, float> best_extroversion_introversion_score <- get_score_introversion_extroversion(possible_buyers);
+		write 'BEST E-I:' + best_extroversion_introversion_score ;
 		
 		if (empty(possible_buyers)) {
 			do remove_intention(sell_item, true);
