@@ -10,7 +10,7 @@ model MBTI
 global {
 
 	int nbitem <- 10;
-	int nbsellers <-1;
+	int nbsellers <-2;
 	int nbbuyers <-50;
 	
 	int steps <- 0;
@@ -42,7 +42,7 @@ global {
 }
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
-	float viewdist_coworkers <- 10.0;
+	float viewdist_sellers <- 100.0;
 	float viewdist_buyers <- 50.0;
 	float speed <- 1.0;
 	int count_people_around <- 0 ;
@@ -67,6 +67,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	predicate define_item_target <- new_predicate("define_item_target");
 	predicate define_buyer_target <- new_predicate("define_buyer_target");
 	predicate sell_item <- new_predicate("sell_item");
+	predicate say_something <- new_predicate("say_something");
 	predicate wander <- new_predicate("wander");
 	predicate met_buyer <- new_predicate("met_buyer");
 	
@@ -112,6 +113,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		ask myself {do remove_intention(wander, false);	}
 	}
 	
+		//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
+	perceive target:sellers in: viewdist_sellers*2{
+		focus id:"location_seller" var:location;
+		write "I have seen a seller";	
+		list<point> sellers_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+		write get_sellers_from_points(sellers_in_my_view);
+	}
+	
 	list get_biggest_cluster(list possible_buyers){	  	
 	  	list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(possible_buyers, 30));
 	  	// Alter the colors to check if everything is OK
@@ -129,6 +138,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			add buyers(buyer) to: list_of_buyers;
 		}
 		return list_of_buyers;	
+	}
+	
+	list get_sellers_from_points(list list_of_points){
+		list<sellers> list_of_sellers; 
+		loop seller over: list_of_points{
+			add sellers(seller) to: list_of_sellers;
+		}
+		return list_of_sellers;	
 	}
 	
 	list remove_visited_target(list list_of_points){
@@ -198,15 +215,27 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}		
 		return buyers_score;		
 	}
+	
+	action get_thinking_feeling_score(list list_of_points, map<buyers, float> buyers_score_t_f){
+		write "get_thinking_feeling_score:" + buyers_score_t_f;		
+	}
 	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
 	rule belief: new_predicate("location_buyer") new_desire: sell_item strength:10.0;
+
+	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
+	rule belief: new_predicate("location_seller") new_desire: say_something strength:10.0;
+
 
 	// plan that has for goal to fulfill the wander desire	
 	plan letsWander intention:wander 
 	{
 		do wander amplitude: 60.0 speed: speed;
 	}
+	
+	plan saySomething intention: say_something{
+		write "Say Something";
+	} 
 	
 	// plan that has for goal to fulfill the "sell_item" desire
 	plan sellItem intention:sell_item{
@@ -251,13 +280,13 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		possible_buyers <- remove_visited_target(possible_buyers);
 		map<buyers, float> buyers_score;
 		buyers_score <- get_extroversion_introversion_score(possible_buyers);
-		write 'E-I:' + buyers_score;
 		
 		// Calculate score for intuition agents
 		if(!sensing_prob){
 			buyers_score <- get_sensing_intuition_score(possible_buyers, buyers_score);
-			write 'S-N:' + buyers_score;			
 		}
+		
+		do get_thinking_feeling_score(possible_buyers, buyers_score);
 						
 		if (empty(possible_buyers)) {
 			do remove_intention(sell_item, true);
@@ -268,7 +297,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			map<buyers, float> max_buyer_score <- get_max_score(buyers_score);
 			target <- point(max_buyer_score.keys[0]);
 			
-			write "before_insert:" + max_buyer_score.keys[0] + max_buyer_score.values[0];
 			// log into db the calculated score
 			do insert (params: PARAMS,
 						into: "TB_TARGET",
