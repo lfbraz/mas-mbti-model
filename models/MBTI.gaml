@@ -11,7 +11,7 @@ global {
 
 	int nbitem <- 10;
 	int nbsellers <-1;
-	int nbbuyers <-100;
+	int nbbuyers <-30;
 	
 	int steps <- 0;
 	int max_steps <- 100;
@@ -44,10 +44,9 @@ global {
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	float viewdist_coworkers <- 10.0;
 	float viewdist_buyers <- 30.0;
-	float speed <- 3.0 min:2.0 max: 100.0;
+	float speed <- 1.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
-	//image_file my_icon <- image_file("../includes/seller.png");
 
 	// MBTI
 	string my_personality;
@@ -82,7 +81,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	{		
 		
 		// clean table
-		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_AGENT_SCORE";
+		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
+		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
+		
+		// MBTI
 		my_personality <- string(mbti_personality);
 		
 		// E (extroverted) or I (introverted)
@@ -97,68 +99,12 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		// J (judging) or P (perceiving)
 		J_P <- mbti_personality at 2; 
-		// When an agent is S it has 80% probability to be sensing. 
 		judging_prob <- J_P='J' ? flip(0.8) : flip(0.2);
 		color <- (J_P='S') ? #purple : #black;
-		
-		// All the agents must know the existing clusters
-		//do get_biggest_cluster();
 		
 		// Begin to wander
 		do add_desire(wander);
 	}
-	
-	
-	float get_speed(string personality, int qty_agents){
-				
-		// When an agent is E it has 80% probability to be extroverted. 
-		extroverted_prob <- personality='E' ? flip(0.8) : flip(0.2);
-		
-		// An extroverted agent increase speed with more agents around.
-		if(extroverted_prob){
-			switch count_people_around {
-				match 0 {
-					speed <- speed  - (speed * 0.3);
-				}
-				match_between [1,3]{
-					speed <- speed  + (speed * 0.2);
-				}
-				match_between [3,5]{
-					speed <- speed  + (speed * 0.25);
-				}
-				match_between [5,8]{
-					speed <- speed  + (speed * 0.28);
-				}
-				match_between [8,-#infinity]{
-					speed <- speed  + (speed * 0.3);
-				}
-			}
-		}
-		// For an introverted agent is the opposite, your speed will be decreased.
-		else{
-			switch count_people_around {
-				match 0 {
-					speed <- speed  + (speed * 0.3);
-				}
-				match_between [1,3]{
-					speed <- speed  - (speed * 0.2);
-				}
-				match_between [3,5]{
-					speed <- speed  - (speed * 0.25);
-				}
-				match_between [5,8]{
-					speed <- speed  - (speed * 0.28);
-				}
-				match_between [8,-#infinity]{
-					speed <- speed  - (speed * 0.3);
-				}
-			}			
-		}				
-		
-		return speed;
-	}
-	
-	
 	
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:buyers in: viewdist_buyers*2{
@@ -186,17 +132,13 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	list remove_visited_target(list list_of_points){
-		write 'ANTES REMOÇÃO: possible_buyers:' + list_of_points + ' - agent:' + self.name;
 		remove all:visited_target from: list_of_points;
-		write 'DEPOIS REMOÇÃO: possible_buyers:' + list_of_points + ' - agent:' + self.name;
 		return list_of_points;
 	}
 	
-	action get_score_introversion_extroversion(list list_of_points){
-		write "ESTOU NO GET_DISTANCES";
+	action get_extroversion_introversion_score(list list_of_points){
 		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		buyers_in_my_view <- reverse (buyers_in_my_view sort_by (each distance_to self));
-		write buyers_in_my_view;
 		
 		//write self distance_to buyers(buyers_in_my_view);
 		int rank <- 1;
@@ -205,10 +147,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		loop buyer over: buyers_in_my_view {
 			float score;
 			float distance_buyer_to_me <- self distance_to buyers(buyer);			
-			write("Distância entre o seller: " + self.name + " e o buyer: " + buyers(buyer).name 
-					+ " é de: " + string(distance_buyer_to_me)
-					+ " e a quantidade de pessoas no buyers é : " + string(buyers(buyer).qty_buyers)
-			);		
 			
 			if(self.extroverted_prob){
 				score <- (distance_buyer_to_me * rank) - (buyers(buyer).qty_buyers * weight_qty_buyers);	
@@ -221,25 +159,49 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			
 			// log into db the calculated score
 			do insert (params: PARAMS,
-							into: "TB_AGENT_SCORE",
-							columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "DISTANCE_TO_BUYER", "NUMBER_OF_PEOPLE_AT_BUYER", "BUYER_NAME", "SCORE_TYPE", "SCORE"],
-							values:  [steps, self.name, self.my_personality, distance_buyer_to_me, buyers(buyer).qty_buyers, buyers(buyer).name, "E-I", score]);
+							into: "TB_SCORE_E_I",
+							columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "DISTANCE_TO_BUYER", "NUMBER_OF_PEOPLE_AT_BUYER", "BUYER_NAME", "SCORE"],
+							values:  [steps, self.name, self.my_personality, distance_buyer_to_me, buyers(buyer).qty_buyers, buyers(buyer).name, score]);
 							
 			rank <- rank + 1;
 		}
 		
 		write 'get_score_introversion_extroversion:' + self.name + " - " + agents_score;
-		map<buyers, float> best_score <- map<buyers, float>(agents_score.pairs with_max_of(each.value));
+		//map<buyers, float> best_score <- map<buyers, float>(agents_score.pairs with_max_of(each.value));
+		map<buyers, float> buyers_score <- map<buyers, float>(agents_score.pairs);
 		
-		return best_score;
-	}		
-	  
-	reflex count_people_around_me{
-		write "LISTA DE PERCEIVED" + perceived_buyers;
-		count_people_around <- length(self neighbors_at(viewdist_coworkers));
-		speed <- get_speed(E_I, count_people_around);	
-		}
+		return buyers_score;
+	}
 	
+	action get_sensing_intuition_score(list list_of_points, map<buyers, float> buyers_score_e_i){
+		list<buyers> list_of_buyers <- get_buyers_from_points(list_of_points);
+		list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(list_of_buyers, 30));
+		
+		map<buyers, float> buyers_score;
+		
+		loop cluster over:clusters{
+			// write "Estou no cluster:" + cluster;
+			// write "Tamanho:" + length(cluster);
+			loop buyer over:cluster{
+				write buyer;
+				
+				map<buyers, float> buyer_score <- map<buyers, float>(buyers_score_e_i.pairs where (each.key = buyer) at 0);
+				// write "old score:" + buyer_score.values[0];
+				float score <- buyer_score.values[0] * length(cluster);
+				
+				// log into db the calculated score
+				do insert (params: PARAMS,
+							into: "TB_SCORE_S_N",
+							columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "CLUSTER_DENSITY", "CLUSTER", "BUYER_NAME", "SCORE"],
+							values:  [steps, self.name, self.my_personality, length(cluster), string(cluster), buyers(buyer).name, score]);
+							
+				
+				add buyers(buyer)::score to:buyers_score;
+			}			
+		}		
+		return buyers_score;		
+	}
+	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
 	rule belief: new_predicate("location_buyer") new_desire: sell_item strength:10.0;
 
@@ -263,8 +225,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				do goto target: target;
 			}
 			
-			write self.name + " INDO PRO TARGET";
-		
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
 			if (target = location)  {
 				got_buyer <- true;
@@ -288,29 +248,25 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
 		list<point> possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
 		
-		//write 'ANTES REMOÇÃO: possible_buyers:' + possible_buyers + ' - agent:' + self.name;
-		//remove all:visited_target from: possible_buyers;
-		//write 'DEPOIS REMOÇÃO: possible_buyers:' + possible_buyers + ' - agent:' + self.name;
 		possible_buyers <- remove_visited_target(possible_buyers);
-		map<buyers, float> best_extroversion_introversion_score <- get_score_introversion_extroversion(possible_buyers);
-		write 'BEST E-I:' + best_extroversion_introversion_score ;
+		map<buyers, float> buyers_score;
+		buyers_score <- get_extroversion_introversion_score(possible_buyers);
+		write 'E-I:' + buyers_score;
+		
+		buyers_score <- get_sensing_intuition_score(possible_buyers, buyers_score);
+		write 'S-N:' + buyers_score;
 		
 		if (empty(possible_buyers)) {
 			do remove_intention(sell_item, true);
 			do remove_intention(define_buyer_target, true);
 			do add_desire(wander);
-			write "ADICIONEI O DESEJO wander";
 		} else {
 		
-			write "TESTANDO A CLUSTERIZAÇÃO POR possible_buyers";
-			write "LISTA DE possible_buyers:" + possible_buyers;
 			list<buyers> list_of_buyers <- get_buyers_from_points(possible_buyers);
-			write "LISTA DE list_of_buyers :" + list_of_buyers;
 			
 			// S agents focus on short-term (min distance to target) and  
 			// N agents focus on "big-picture" and long-term gains (density is more important)
 			list cluster <- get_biggest_cluster(list_of_buyers);
-			write("MAIOR CLUSTER ENCONTRADO:" + cluster);
 			
 			if(sensing_prob or already_visited_cluster) {
 				target <- (possible_buyers with_min_of (each distance_to self)).location;
@@ -326,7 +282,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	aspect default {	  
 	  	
 	  draw circle(3) color: color;
-	  // draw my_icon size: 5;
 	  
 	  // enable view distance
 	  draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
