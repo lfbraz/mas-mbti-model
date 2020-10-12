@@ -14,7 +14,7 @@ global {
 	int nbbuyers <-30;
 	
 	int steps <- 0;
-	int max_steps <- 100;
+	int max_steps <- 1000;
 	
 	geometry shape <- square(400);
 	map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../db/mas-mbti-recruitment.db'];
@@ -31,7 +31,7 @@ global {
 		}	
 	}
 	
-	reflex stop when:steps=100{
+	reflex stop when:steps=max_steps{
 		do pause;
 	}
 	
@@ -83,24 +83,22 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		// clean table
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
+		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
 		
 		// MBTI
 		my_personality <- string(mbti_personality);
 		
 		// E (extroverted) or I (introverted)
 		E_I <- mbti_personality at 0; 
-		color <- (E_I='E') ? #orange : #green;	
+		extroverted_prob <- E_I = 'E' ? flip(0.8) : flip(0.2);
 		
 		// S (sensing) or N (iNtuiton)
 		S_N <- mbti_personality at 1; 
-		// When an agent is S it has 80% probability to be sensing. 
-		sensing_prob <- S_N='S' ? flip(0.8) : flip(0.2);
-		color <- (S_N='S') ? #yellow : #red;
+		sensing_prob <- S_N=  'S' ? flip(0.8) : flip(0.2);
 		
 		// J (judging) or P (perceiving)
 		J_P <- mbti_personality at 2; 
-		judging_prob <- J_P='J' ? flip(0.8) : flip(0.2);
-		color <- (J_P='S') ? #purple : #black;
+		judging_prob <- J_P = 'J' ? flip(0.8) : flip(0.2);
 		
 		// Begin to wander
 		do add_desire(wander);
@@ -179,14 +177,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		map<buyers, float> buyers_score;
 		
+		// For each cluster we update the score		
 		loop cluster over:clusters{
-			// write "Estou no cluster:" + cluster;
-			// write "Tamanho:" + length(cluster);
 			loop buyer over:cluster{
-				write buyer;
-				
 				map<buyers, float> buyer_score <- map<buyers, float>(buyers_score_e_i.pairs where (each.key = buyer) at 0);
-				// write "old score:" + buyer_score.values[0];
+
 				float score <- buyer_score.values[0] * length(cluster);
 				
 				// log into db the calculated score
@@ -242,7 +237,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			}
 		}
 	}
-	
+
+	action get_max_score(map<buyers, float> buyer_score){
+		return buyer_score.pairs with_max_of(each.value);
+	}
 		
 	//plan that has for goal to fulfill the define item target desire. This plan is instantaneous (does not take a complete simulation step to apply).
 	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
@@ -253,28 +251,38 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		buyers_score <- get_extroversion_introversion_score(possible_buyers);
 		write 'E-I:' + buyers_score;
 		
-		buyers_score <- get_sensing_intuition_score(possible_buyers, buyers_score);
-		write 'S-N:' + buyers_score;
-		
+		// Calculate score for intuition agents
+		if(!sensing_prob){
+			buyers_score <- get_sensing_intuition_score(possible_buyers, buyers_score);
+			write 'S-N:' + buyers_score;			
+		}
+						
 		if (empty(possible_buyers)) {
 			do remove_intention(sell_item, true);
 			do remove_intention(define_buyer_target, true);
 			do add_desire(wander);
 		} else {
 		
-			list<buyers> list_of_buyers <- get_buyers_from_points(possible_buyers);
+			map<buyers, float> max_buyer_score <- get_max_score(buyers_score);
+			target <- point(max_buyer_score.keys[0]);
+			
+			write "before_insert:" + max_buyer_score.keys[0] + max_buyer_score.values[0];
+			// log into db the calculated score
+			do insert (params: PARAMS,
+						into: "TB_TARGET",
+						columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
+						values:  [steps, self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);
+						
+			
+			//list<buyers> list_of_buyers <- get_buyers_from_points(possible_buyers);
 			
 			// S agents focus on short-term (min distance to target) and  
 			// N agents focus on "big-picture" and long-term gains (density is more important)
-			list cluster <- get_biggest_cluster(list_of_buyers);
+			//list cluster <- get_biggest_cluster(list_of_buyers);
 			
-			if(sensing_prob or already_visited_cluster) {
-				target <- (possible_buyers with_min_of (each distance_to self)).location;
-			} else {
-				target <- cluster with_min_of (point(each) distance_to self);
-				already_visited_cluster <- true;				
-			}
-			
+			if(!already_visited_cluster) {
+				already_visited_cluster <- true;
+			} 			
 		}
 		do remove_intention(define_buyer_target, true);
 	}

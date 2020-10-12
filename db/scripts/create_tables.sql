@@ -20,3 +20,11 @@ CREATE TABLE TB_SCORE_S_N (ID INTEGER PRIMARY KEY AUTOINCREMENT,
                            BUYER_NAME TEXT,
                            SCORE REAL                             
                              );
+  
+CREATE TABLE TB_TARGET (ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                        INTERACTION INT,
+                        SELLER_NAME TEXT,
+                        MBTI_SELLER TEXT,
+                        BUYER_TARGET TEXT,
+                        SCORE REAL
+                        );
