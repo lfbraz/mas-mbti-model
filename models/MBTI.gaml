@@ -26,9 +26,9 @@ global {
 			do init(['I','N','T','J']);
 		}		
 		
-		//create sellers number: nbsellers {
-		//	do init(['E','S','T','P']);
-		//}	
+		create sellers number: nbsellers {
+			do init(['E','S','T','P']);
+		}	
 	}
 	
 	reflex stop when:steps=100{
@@ -50,6 +50,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//image_file my_icon <- image_file("../includes/seller.png");
 
 	// MBTI
+	string my_personality;
 	string E_I;
 	bool extroverted_prob;
 	
@@ -77,24 +78,25 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	int weight_qty_buyers <- 100;
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
-	action init (list<string> mbti)
+	action init (list<string> mbti_personality)
 	{		
 		
 		// clean table
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_AGENT_SCORE";
+		my_personality <- string(mbti_personality);
 		
 		// E (extroverted) or I (introverted)
-		E_I <- mbti at 0; 
+		E_I <- mbti_personality at 0; 
 		color <- (E_I='E') ? #orange : #green;	
 		
 		// S (sensing) or N (iNtuiton)
-		S_N <- mbti at 1; 
+		S_N <- mbti_personality at 1; 
 		// When an agent is S it has 80% probability to be sensing. 
 		sensing_prob <- S_N='S' ? flip(0.8) : flip(0.2);
 		color <- (S_N='S') ? #yellow : #red;
 		
 		// J (judging) or P (perceiving)
-		J_P <- mbti at 2; 
+		J_P <- mbti_personality at 2; 
 		// When an agent is S it has 80% probability to be sensing. 
 		judging_prob <- J_P='J' ? flip(0.8) : flip(0.2);
 		color <- (J_P='S') ? #purple : #black;
@@ -208,7 +210,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 					+ " e a quantidade de pessoas no buyers é : " + string(buyers(buyer).qty_buyers)
 			);		
 			
-			score <- (distance_buyer_to_me * rank) - (buyers(buyer).qty_buyers * weight_qty_buyers);
+			if(self.extroverted_prob){
+				score <- (distance_buyer_to_me * rank) - (buyers(buyer).qty_buyers * weight_qty_buyers);	
+			}
+				score <- (distance_buyer_to_me * rank) * buyers(buyer).qty_buyers;
+			
 			
 			// Map agents and scores
 			add buyers(buyer)::score to: agents_score;
@@ -216,8 +222,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			// log into db the calculated score
 			do insert (params: PARAMS,
 							into: "TB_AGENT_SCORE",
-							columns: ["INTERACTION", "SELLER_NAME", "DISTANCE_TO_BUYER", "NUMBER_OF_PEOPLE_AT_BUYER", "BUYER_NAME", "SCORE"],
-							values:  [steps, self.name, distance_buyer_to_me, buyers(buyer).qty_buyers, buyers(buyer).name, score]);
+							columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "DISTANCE_TO_BUYER", "NUMBER_OF_PEOPLE_AT_BUYER", "BUYER_NAME", "SCORE_TYPE", "SCORE"],
+							values:  [steps, self.name, self.my_personality, distance_buyer_to_me, buyers(buyer).qty_buyers, buyers(buyer).name, "E-I", score]);
 							
 			rank <- rank + 1;
 		}
