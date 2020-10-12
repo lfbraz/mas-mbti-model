@@ -11,12 +11,12 @@ global {
 
 	int nbitem <- 10;
 	int nbsellers <-1;
-	int nbbuyers <-30;
+	int nbbuyers <-50;
 	
 	int steps <- 0;
 	int max_steps <- 1000;
 	
-	geometry shape <- square(400);
+	geometry shape <- square(500);
 	map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../db/mas-mbti-recruitment.db'];
 	
 	init {
@@ -43,7 +43,7 @@ global {
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	float viewdist_coworkers <- 10.0;
-	float viewdist_buyers <- 30.0;
+	float viewdist_buyers <- 50.0;
 	float speed <- 1.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
@@ -91,6 +91,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		// E (extroverted) or I (introverted)
 		E_I <- mbti_personality at 0; 
 		extroverted_prob <- E_I = 'E' ? flip(0.8) : flip(0.2);
+		color <- extroverted_prob ? #blue:#red;
+		write "agent personality:" + E_I + " and extroverted_prob:" + extroverted_prob;
 		
 		// S (sensing) or N (iNtuiton)
 		S_N <- mbti_personality at 1; 
@@ -146,11 +148,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			float score;
 			float distance_buyer_to_me <- self distance_to buyers(buyer);			
 			
-			if(self.extroverted_prob){
-				score <- (distance_buyer_to_me * rank) - (buyers(buyer).qty_buyers * weight_qty_buyers);	
-			}
+			if(!self.extroverted_prob){
+				score <- (distance_buyer_to_me * rank) - (buyers(buyer).qty_buyers * weight_qty_buyers);
+			}else {
 				score <- (distance_buyer_to_me * rank) * buyers(buyer).qty_buyers;
-			
+			}
 			
 			// Map agents and scores
 			add buyers(buyer)::score to: agents_score;
@@ -158,8 +160,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			// log into db the calculated score
 			do insert (params: PARAMS,
 							into: "TB_SCORE_E_I",
-							columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "DISTANCE_TO_BUYER", "NUMBER_OF_PEOPLE_AT_BUYER", "BUYER_NAME", "SCORE"],
-							values:  [steps, self.name, self.my_personality, distance_buyer_to_me, buyers(buyer).qty_buyers, buyers(buyer).name, score]);
+							columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "RANK", "DISTANCE_TO_BUYER", "NUMBER_OF_PEOPLE_AT_BUYER", "BUYER_NAME", "SCORE"],
+							values:  [steps, self.name, self.my_personality, rank, distance_buyer_to_me, buyers(buyer).qty_buyers, buyers(buyer).name, score]);
 							
 			rank <- rank + 1;
 		}
@@ -289,14 +291,19 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	aspect default {	  
 	  	
-	  draw circle(3) color: color;
+	  draw circle(18) color: color;
 	  
 	  // enable view distance
 	  draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
 
-	  draw ("MBTI:" + E_I + "(" + extroverted_prob + ")" + S_N + sensing_prob + ")") color:#black size:4;
-	  draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
-	  draw ("Velocidade:" + speed) color:#black size:4 at:{location.x,location.y+2*4}; 
+	  if(extroverted_prob){
+	  	draw ("MBTI:E" ) color:#black size:4;
+	  } else{
+	  	draw ("MBTI:I" ) color:#black size:4;
+	  }
+
+	  //draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
+	  //draw ("Velocidade:" + speed) color:#black size:4 at:{location.x,location.y+2*4}; 
 	  
 	  //write("Intenção Corrente:" + get_values(has_item)  ) ;
 	   
