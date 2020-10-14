@@ -37,7 +37,7 @@ global {
 	
 	reflex count{
 		steps  <- steps + 1;
-		write "step:" + steps;
+		// write "step:" + steps;
 	}
 }
 
@@ -75,7 +75,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	list<point> visited_target;
 	list<point> perceived_buyers;
 	
+	list<point> sellers_in_my_view;
+	
 	int weight_qty_buyers <- 100;
+	float min_distance_to_exclude <- 50.0;
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti_personality)
@@ -116,9 +119,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:sellers in: viewdist_sellers*2{
 		focus id:"location_seller" var:location;
-		write "I have seen a seller";	
-		list<point> sellers_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
-		write get_sellers_from_points(sellers_in_my_view);
+		sellers_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+		do remove_belief(new_predicate("location_seller"));
 	}
 	
 	list get_biggest_cluster(list possible_buyers){	  	
@@ -207,8 +209,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				do insert (params: PARAMS,
 							into: "TB_SCORE_S_N",
 							columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "CLUSTER_DENSITY", "CLUSTER", "BUYER_NAME", "SCORE"],
-							values:  [steps, self.name, self.my_personality, length(cluster), string(cluster), buyers(buyer).name, score]);
-							
+							values:  [steps, self.name, self.my_personality, length(cluster), string(cluster), buyers(buyer).name, score]);							
 				
 				add buyers(buyer)::score to:buyers_score;
 			}			
@@ -217,14 +218,31 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	action get_thinking_feeling_score(list list_of_points, map<buyers, float> buyers_score_t_f){
-		write "get_thinking_feeling_score:" + buyers_score_t_f;		
+		write "get_thinking_feeling_score:";
+		write "buyers_score_t_f before exclusion: " + buyers_score_t_f; 
+
+		list sellers_perceived <- get_sellers_from_points(sellers_in_my_view);
+	
+		loop seller over: sellers_perceived{
+			loop buyer over: buyers_score_t_f.pairs{
+				write "distance betwwen seller and buyer" + point(seller) distance_to point(buyer.key);
+				
+				// if the buyers is in a minimal distance to the colleages we exclude it
+				// TODO: consider teamates
+				if(point(seller) distance_to point(buyer.key) < min_distance_to_exclude){
+					remove all: buyer from: buyers_score_t_f;	
+				}
+			}
+		}
+		
+		write "buyers_score_t_f after exclusion: " + buyers_score_t_f;		
 	}
 	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
 	rule belief: new_predicate("location_buyer") new_desire: sell_item strength:10.0;
 
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
-	rule belief: new_predicate("location_seller") new_desire: say_something strength:10.0;
+	//rule belief: new_predicate("location_seller") new_desire: say_something strength:10.0;
 
 
 	// plan that has for goal to fulfill the wander desire	
@@ -233,9 +251,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		do wander amplitude: 60.0 speed: speed;
 	}
 	
-	plan saySomething intention: say_something{
-		write "Say Something";
-	} 
+	//plan saySomething intention: say_something{
+	//	write "Say Something";
+	//} 
 	
 	// plan that has for goal to fulfill the "sell_item" desire
 	plan sellItem intention:sell_item{
