@@ -218,14 +218,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	action get_thinking_feeling_score(list list_of_points, map<buyers, float> buyers_score_t_f){
-		write "get_thinking_feeling_score:";
-		write "buyers_score_t_f before exclusion: " + buyers_score_t_f; 
-
 		list sellers_perceived <- get_sellers_from_points(sellers_in_my_view);
 	
 		loop seller over: sellers_perceived{
 			loop buyer over: buyers_score_t_f.pairs{
-				write "distance betwwen seller and buyer" + point(seller) distance_to point(buyer.key);
 				
 				// if the buyers is in a minimal distance to the colleages we exclude it
 				// TODO: consider teamates
@@ -235,7 +231,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			}
 		}
 		
-		write "buyers_score_t_f after exclusion: " + buyers_score_t_f;		
+		return buyers_score_t_f;		
 	}
 	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
@@ -263,11 +259,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			do current_intention_on_hold();
 		} else {
 			
-			if(judging_prob){
-				do goto target: target;				
-			}else {
-				do goto target: target;
-			}
+			do goto target: target;
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
 			if (target = location)  {
@@ -304,7 +296,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			buyers_score <- get_sensing_intuition_score(possible_buyers, buyers_score);
 		}
 		
-		do get_thinking_feeling_score(possible_buyers, buyers_score);
+		buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
 						
 		if (empty(possible_buyers)) {
 			do remove_intention(sell_item, true);
@@ -321,13 +313,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 						columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
 						values:  [steps, self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);
 						
-			
-			//list<buyers> list_of_buyers <- get_buyers_from_points(possible_buyers);
-			
-			// S agents focus on short-term (min distance to target) and  
-			// N agents focus on "big-picture" and long-term gains (density is more important)
-			//list cluster <- get_biggest_cluster(list_of_buyers);
-			
 			if(!already_visited_cluster) {
 				already_visited_cluster <- true;
 			} 			
