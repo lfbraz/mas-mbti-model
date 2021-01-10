@@ -171,31 +171,31 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		map<buyers, float> buyers_distance_score;
 		
 		// Get the distance of each buyer to the seller and calculate the inverted norm score
-		buyers_distance_to_me  <- map<buyers, float>(buyers_in_my_view collect (buyers(each)::self distance_to (each)));
-		buyers_distance_score <- map<buyers, float>(buyers_distance_to_me.pairs as_map (each.key::abs( (float(each.value) - float(max(buyers_distance_to_me)))
-																										/ (float(min(buyers_distance_to_me)) - float(max(buyers_distance_to_me)))
-		)));
+		buyers_distance_to_me  <- map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
+		buyers_distance_score <- buyers_distance_to_me.pairs as_map (each.key::abs( (each.value - max(buyers_distance_to_me))
+																										/ (min(buyers_distance_to_me) - max(buyers_distance_to_me))
+		));
 		
 		map<buyers, float> buyers_qty_buyers;
 		map<buyers, float> buyers_qty_buyers_score;
 		
 		// Get how many people exists in the buyer and calculate the norm score
-		buyers_qty_buyers  <- map<buyers, float>(buyers_in_my_view collect (buyers(each)::each.qty_buyers));
-		buyers_qty_buyers_score <- map<buyers, float>(buyers_qty_buyers.pairs as_map (each.key::abs( (float(each.value) - float(min(buyers_qty_buyers)))
-																										/ (float(max(buyers_qty_buyers)) - float(min(buyers_qty_buyers)))
-		)));
+		buyers_qty_buyers  <- map<buyers, float>(buyers_in_my_view collect (each::each.qty_buyers));
+		buyers_qty_buyers_score <- buyers_qty_buyers.pairs as_map (each.key::abs( (each.value - min(buyers_qty_buyers))
+																										/ (max(buyers_qty_buyers) - min(buyers_qty_buyers))
+		));
 
 		// Use the right weight depend on the seller personality and calculate the combined score
 		if(!self.extroverted_prob){
-			agents_score <- map<buyers, float>(buyers_distance_score.pairs as_map (each.key::each.value+(weight_intraversion*buyers_qty_buyers_score[each.key])));
+			agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_intraversion*buyers_qty_buyers_score[each.key]));
 		}else {
-			agents_score <- map<buyers, float>(buyers_distance_score.pairs as_map (each.key::each.value+(weight_extraversion*buyers_qty_buyers_score[each.key])));
+			agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_extraversion*buyers_qty_buyers_score[each.key]));
 		}
 		
 		// Calculate the final norm score
-		agents_score <- map<buyers, float>(agents_score.pairs as_map (each.key::abs( (float(each.value) - float(min(agents_score)))
-																										/ (float(max(agents_score)) - float(min(agents_score))) 
-		)));
+		agents_score <- agents_score.pairs as_map (each.key::abs( (each.value - min(agents_score))
+																										/ (max(agents_score) - min(agents_score)) 
+		));
 		
 		// Log to the database
 		loop buyer over: agents_score.pairs {			
