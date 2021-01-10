@@ -8,6 +8,8 @@ CREATE TABLE TB_SCORE_E_I (ID INTEGER PRIMARY KEY AUTOINCREMENT,
                            DISTANCE_TO_BUYER REAL,
                            NUMBER_OF_PEOPLE_AT_BUYER INT,
                            BUYER_NAME TEXT,
+                           SCORE_DISTANCE FLOAT,
+                           SCORE_QTY_BUYERS FLOAT,
                            SCORE REAL                             
                              );
 
