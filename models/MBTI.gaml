@@ -158,6 +158,15 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		return list_of_points;
 	}
 	
+	action get_norm(float score, map<buyers, float> buyers_scores, bool order_by_asc <- true){
+		if(order_by_asc){
+			return abs((score - min(buyers_scores)) / (max(buyers_scores) - min(buyers_scores)));
+		}
+		else {
+			return abs((score - max(buyers_scores)) / (min(buyers_scores) - max(buyers_scores)));	
+		} 
+	}
+	
 	action get_extroversion_introversion_score(list list_of_points){
 		map<buyers, float> agents_score;
 		
@@ -180,18 +189,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			
 			// Get the distance of each buyer to the seller and calculate the inverted norm score
 			buyers_distance_to_me  <- map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
-			buyers_distance_score <- buyers_distance_to_me.pairs as_map (each.key::abs( (each.value - max(buyers_distance_to_me))
-																											/ (min(buyers_distance_to_me) - max(buyers_distance_to_me))
-			));
+			buyers_distance_score <- buyers_distance_to_me.pairs as_map (each.key::float(get_norm(each.value, buyers_distance_to_me, false)));
 			
 			map<buyers, float> buyers_qty_buyers;
 			map<buyers, float> buyers_qty_buyers_score;
 			
 			// Get how many people exists in the buyer and calculate the norm score
 			buyers_qty_buyers  <- map<buyers, float>(buyers_in_my_view collect (each::each.qty_buyers));
-			buyers_qty_buyers_score <- buyers_qty_buyers.pairs as_map (each.key::abs( (each.value - min(buyers_qty_buyers))
-																											/ (max(buyers_qty_buyers) - min(buyers_qty_buyers))
-			));
+			buyers_qty_buyers_score <- buyers_qty_buyers.pairs as_map (each.key::float(get_norm(each.value, buyers_qty_buyers)));
 	
 			// Use the right weight depend on the seller personality and calculate the combined score
 			if(!self.extroverted_prob){
@@ -201,9 +206,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			}
 			
 			// Calculate the final norm score
-			agents_score <- agents_score.pairs as_map (each.key::abs( (each.value - min(agents_score))
-																											/ (max(agents_score) - min(agents_score)) 
-			));
+			agents_score <- agents_score.pairs as_map (each.key::float(get_norm(each.value, agents_score)));
 			
 			// Log to the database
 			loop buyer over: agents_score.pairs {			
