@@ -243,7 +243,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}
 	}
 	
-	action get_sensing_intuition_score(list list_of_points, map<buyers, float> agents_score){
+	action get_sensing_intuition_score(list list_of_points){
+		map<buyers, float> agents_score;
 		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		// When there is a unique agent we can simply consider it as the max score
@@ -279,9 +280,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			
 			// Get the distance of each buyer to the seller and calculate the inverted norm score
 			map<buyers, float> buyers_density_score;
-			buyers_density_score <- buyers_density.pairs as_map (each.key:: (max(buyers_density)>1) ? float(get_norm(each.value, buyers_density)) : 1.0);
-		
-			map<buyers, float> agents_score;
+			buyers_density_score <- buyers_density.pairs as_map (each.key:: (max(buyers_density)>1) ? float(get_norm(each.value, buyers_density)) : 1.0);			
 			
 			// Use the right weight depend on the seller personality and calculate the combined score
 			if(!self.sensing_prob){
@@ -397,13 +396,20 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		list<point> possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
 		
 		possible_buyers <- remove_visited_target(possible_buyers);
-		map<buyers, float> buyers_score;
-		buyers_score <- get_extroversion_introversion_score(possible_buyers);
+		map<buyers, float> buyers_e_i_score;
+		buyers_e_i_score <- get_extroversion_introversion_score(possible_buyers);
+		
+		map<buyers, float> buyers_s_n_score;
 		
 		// Calculate score for intuition agents
 		if(!sensing_prob){
-			buyers_score <- get_sensing_intuition_score(possible_buyers, buyers_score);
+			buyers_s_n_score <- get_sensing_intuition_score(possible_buyers);
 		}
+		
+		map<buyers, float> buyers_score;
+		
+		// Sum scores E-I and S-N		
+		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key]));
 		
 		buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
 						
