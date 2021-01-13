@@ -18,8 +18,11 @@ CREATE TABLE TB_SCORE_S_N (ID INTEGER PRIMARY KEY AUTOINCREMENT,
                            SELLER_NAME TEXT,
                            MBTI_SELLER TEXT,
                            CLUSTER_DENSITY INT,
+                           DISTANCE_TO_BUYER REAL,
                            CLUSTER TEXT,
                            BUYER_NAME TEXT,
+                           SCORE_DISTANCE FLOAT,
+                           SCORE_DENSITY FLOAT,
                            SCORE REAL                             
                              );
   
