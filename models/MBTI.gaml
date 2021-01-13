@@ -80,6 +80,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	int weight_qty_buyers <- 100;
 	float min_distance_to_exclude <- 50.0;
 	
+	int weight_intraversion <- -100;
+	int weight_extraversion <- 100;
+	int weight_sensing <- -100;
+	int weight_intuition <- 100;	
+	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti_personality)
 	{		
@@ -155,66 +160,169 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		return list_of_points;
 	}
 	
-	action get_extroversion_introversion_score(list list_of_points){
-		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
-		buyers_in_my_view <- reverse (buyers_in_my_view sort_by (each distance_to self));
-		
-		//write self distance_to buyers(buyers_in_my_view);
-		int rank <- 1;
-		map<buyers, float> agents_score;
-		
-		loop buyer over: buyers_in_my_view {
-			float score;
-			float distance_buyer_to_me <- self distance_to buyers(buyer);			
-			
-			if(!self.extroverted_prob){
-				score <- (distance_buyer_to_me * rank) - (buyers(buyer).qty_buyers * weight_qty_buyers);
-			}else {
-				score <- (distance_buyer_to_me * rank) * buyers(buyer).qty_buyers;
-			}
-			
-			// Map agents and scores
-			add buyers(buyer)::score to: agents_score;
-			
-			// log into db the calculated score
-			do insert (params: PARAMS,
-							into: "TB_SCORE_E_I",
-							columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "RANK", "DISTANCE_TO_BUYER", "NUMBER_OF_PEOPLE_AT_BUYER", "BUYER_NAME", "SCORE"],
-							values:  [steps, self.name, self.my_personality, rank, distance_buyer_to_me, buyers(buyer).qty_buyers, buyers(buyer).name, score]);
-							
-			rank <- rank + 1;
+	action get_norm(float score, map<buyers, float> buyers_scores, bool order_by_asc <- true){
+		if(order_by_asc){
+			return abs((score - min(buyers_scores)) / (max(buyers_scores) - min(buyers_scores)));
 		}
-		
-		write 'get_score_introversion_extroversion:' + self.name + " - " + agents_score;
-		//map<buyers, float> best_score <- map<buyers, float>(agents_score.pairs with_max_of(each.value));
-		map<buyers, float> buyers_score <- map<buyers, float>(agents_score.pairs);
-		
-		return buyers_score;
+		else {
+			return abs((score - max(buyers_scores)) / (min(buyers_scores) - max(buyers_scores)));	
+		} 
 	}
 	
-	action get_sensing_intuition_score(list list_of_points, map<buyers, float> buyers_score_e_i){
-		list<buyers> list_of_buyers <- get_buyers_from_points(list_of_points);
-		list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(list_of_buyers, 30));
+	action get_extroversion_introversion_score(list list_of_points){
+		map<buyers, float> agents_score;
 		
-		map<buyers, float> buyers_score;
+		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
-		// For each cluster we update the score		
-		loop cluster over:clusters{
-			loop buyer over:cluster{
-				map<buyers, float> buyer_score <- map<buyers, float>(buyers_score_e_i.pairs where (each.key = buyer) at 0);
-
-				float score <- buyer_score.values[0] * length(cluster);
+		// When there is a unique agent we can simply consider it as the max score
+		if(length(buyers_in_my_view)=1){
+			agents_score <-  map<buyers, float>(buyers_in_my_view collect (first(each)::1.0));
+		}
+		else {			
+		
+			buyers_in_my_view <- reverse (buyers_in_my_view sort_by (each distance_to self));
+			
+			write "buyers_in_my_view: " + buyers_in_my_view;
+			write "length(buyers_in_my_view): " + length(buyers_in_my_view);
+					
+			map<buyers, float> buyers_distance_to_me;
+			map<buyers, float> buyers_distance_score;
+			
+			// Get the distance of each buyer to the seller and calculate the inverted norm score
+			buyers_distance_to_me  <- map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
+			buyers_distance_score <- buyers_distance_to_me.pairs as_map (each.key::float(get_norm(each.value, buyers_distance_to_me, false)));
+			
+			map<buyers, float> buyers_qty_buyers;
+			map<buyers, float> buyers_qty_buyers_score;
+			
+			// Get how many people exists in the buyer and calculate the norm score
+			buyers_qty_buyers  <- map<buyers, float>(buyers_in_my_view collect (each::each.qty_buyers));
+			buyers_qty_buyers_score <- buyers_qty_buyers.pairs as_map (each.key::float(get_norm(each.value, buyers_qty_buyers)));
+	
+			// Use the right weight depend on the seller personality and calculate the combined score
+			if(!self.extroverted_prob){
+				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_intraversion*buyers_qty_buyers_score[each.key]));
+			}else {
+				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_extraversion*buyers_qty_buyers_score[each.key]));
+			}
+			
+			// Calculate the final norm score
+			agents_score <- agents_score.pairs as_map (each.key::float(get_norm(each.value, agents_score)));
+			
+			// Log to the database
+			loop buyer over: agents_score.pairs {			
+				// log into db the calculated score
+				do insert (params: PARAMS,
+								into: "TB_SCORE_E_I",
+								columns: ["INTERACTION", 
+										  "SELLER_NAME", 
+										  "MBTI_SELLER", 
+										  "DISTANCE_TO_BUYER", 
+										  "NUMBER_OF_PEOPLE_AT_BUYER", 
+										  "BUYER_NAME",
+										  "IS_EXTROVERTED",
+										  "SCORE_DISTANCE",
+				                          "SCORE_QTY_BUYERS",
+										  "SCORE"],
+								values:  [steps, 
+										  self.name, 
+										  self.my_personality, 
+										  buyers_distance_to_me[buyer.key], 
+										  buyers(buyer.key).qty_buyers, 
+										  buyers(buyer.key).name,
+										  int(self.extroverted_prob),
+										  buyers_distance_score[buyer.key],
+										  buyers_qty_buyers_score[buyer.key],
+										  buyer.value
+								]);
+								
+								
+			}		
+			
+			return agents_score;	
+		}
+	}
+	
+	action get_sensing_intuition_score(list list_of_points){
+		map<buyers, float> agents_score;
+		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
+		
+		// When there is a unique agent we can simply consider it as the max score
+		if(length(buyers_in_my_view)=1){
+			agents_score <-  map<buyers, float>(buyers_in_my_view collect (first(each)::1.0));
+		}
+		else {
+		
+			map<buyers, float> buyers_distance_to_me;
+			map<buyers, float> buyers_distance_score;
 				
+			// Get the distance of each buyer to the seller and calculate the inverted norm score
+			buyers_distance_to_me  <- map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
+			buyers_distance_score <- buyers_distance_to_me.pairs as_map (each.key::float(get_norm(each.value, buyers_distance_to_me, false)));
+				
+			list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view, 30));
+			int min_cluster <- min(clusters collect (length(each)));
+			int max_cluster <- max(clusters collect (length(each)));
+			
+			list<map<list<buyers>, int>> clusters_density <-list<map<list<buyers>, int>>(clusters collect (each::length(each)));
+			write "clusters_density-before:" + clusters_density ; 
+			
+			// Here we must navigate in three different levels because of the structure of the list of maps of lists		
+			// With that we create a map of buyers with the density of its own cluster
+			map<buyers, float> buyers_density;
+			loop cluster over:clusters_density{
+				loop buyers_by_density over: cluster.pairs{
+					loop buyer over: buyers_by_density.key {
+						add buyer::buyers_by_density.value to:buyers_density;				
+					}				
+				}
+			}
+			
+			// Get the distance of each buyer to the seller and calculate the inverted norm score
+			map<buyers, float> buyers_density_score;
+			buyers_density_score <- buyers_density.pairs as_map (each.key:: (max(buyers_density)>1) ? float(get_norm(each.value, buyers_density)) : 1.0);			
+			
+			// Use the right weight depend on the seller personality and calculate the combined score
+			if(!self.sensing_prob){
+				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_intuition*buyers_density_score[each.key]));
+			}else {
+				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_sensing*buyers_density_score[each.key]));
+			}
+			
+			// Calculate the final norm score
+			agents_score <- agents_score.pairs as_map (each.key::float(get_norm(each.value, agents_score)));
+		
+			float score;
+			  
+			// Log to the database
+			loop buyer over: agents_score.pairs {
+				write "length(cluster)" + buyers_density[buyer.key];
 				// log into db the calculated score
 				do insert (params: PARAMS,
 							into: "TB_SCORE_S_N",
-							columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "CLUSTER_DENSITY", "CLUSTER", "BUYER_NAME", "SCORE"],
-							values:  [steps, self.name, self.my_personality, length(cluster), string(cluster), buyers(buyer).name, score]);							
-				
-				add buyers(buyer)::score to:buyers_score;
-			}			
-		}		
-		return buyers_score;		
+							columns: ["INTERACTION", 
+									  "SELLER_NAME", 
+									  "MBTI_SELLER", 
+									  "CLUSTER_DENSITY",
+									  "DISTANCE_TO_BUYER",
+									  "BUYER_NAME",
+									  "SCORE_DISTANCE",
+									  "SCORE_DENSITY", 
+									  "SCORE"],
+							values:  [steps, 
+									  self.name, 
+									  self.my_personality, 
+									  buyers_density[buyer.key],
+									  buyers_distance_to_me[buyer.key], 
+									  buyers(buyer.key).name,
+									  buyers_distance_score[buyer.key],
+									  buyers_density_score[buyer.key], 
+									  buyer.value
+									]);		
+			}		
+		}
+		
+		return agents_score;		
 	}
 	
 	action get_thinking_feeling_score(list list_of_points, map<buyers, float> buyers_score_t_f){
@@ -288,13 +396,20 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		list<point> possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
 		
 		possible_buyers <- remove_visited_target(possible_buyers);
-		map<buyers, float> buyers_score;
-		buyers_score <- get_extroversion_introversion_score(possible_buyers);
+		map<buyers, float> buyers_e_i_score;
+		buyers_e_i_score <- get_extroversion_introversion_score(possible_buyers);
+		
+		map<buyers, float> buyers_s_n_score;
 		
 		// Calculate score for intuition agents
 		if(!sensing_prob){
-			buyers_score <- get_sensing_intuition_score(possible_buyers, buyers_score);
+			buyers_s_n_score <- get_sensing_intuition_score(possible_buyers);
 		}
+		
+		map<buyers, float> buyers_score;
+		
+		// Sum scores E-I and S-N		
+		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key]));
 		
 		buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
 						
