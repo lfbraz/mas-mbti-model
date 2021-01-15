@@ -37,7 +37,6 @@ global {
 	
 	reflex count{
 		steps  <- steps + 1;
-		// write "step:" + steps;
 	}
 }
 
@@ -181,10 +180,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		else {			
 		
 			buyers_in_my_view <- reverse (buyers_in_my_view sort_by (each distance_to self));
-			
-			write "buyers_in_my_view: " + buyers_in_my_view;
-			write "length(buyers_in_my_view): " + length(buyers_in_my_view);
-					
+				
 			map<buyers, float> buyers_distance_to_me;
 			map<buyers, float> buyers_distance_score;
 			
@@ -265,7 +261,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			int max_cluster <- max(clusters collect (length(each)));
 			
 			list<map<list<buyers>, int>> clusters_density <-list<map<list<buyers>, int>>(clusters collect (each::length(each)));
-			write "clusters_density-before:" + clusters_density ; 
 			
 			// Here we must navigate in three different levels because of the structure of the list of maps of lists		
 			// With that we create a map of buyers with the density of its own cluster
@@ -296,7 +291,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			  
 			// Log to the database
 			loop buyer over: agents_score.pairs {
-				write "length(cluster)" + buyers_density[buyer.key];
 				// log into db the calculated score
 				do insert (params: PARAMS,
 							into: "TB_SCORE_S_N",
