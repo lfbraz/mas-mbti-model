@@ -47,17 +47,21 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
 
-	// MBTI
+	// MBTI variables
 	string my_personality;
+
 	string E_I;
-	bool extroverted_prob;
+	bool is_extroverted;
 	
 	string S_N;
-	bool sensing_prob;
+	bool is_sensing;
+	
+	string T_F;
+	bool is_thinking;
 
 	string J_P;
-	bool judging_prob;
-
+	bool is_judging;
+	
 	bool already_visited_cluster <- false;
 	
 	rgb color;
@@ -84,6 +88,26 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	int weight_sensing <- -100;
 	int weight_intuition <- 100;	
 	
+	action define_personality(list<string> mbti_personality){
+		E_I <- mbti_personality at 0;
+		S_N <- mbti_personality at 1;
+		T_F <- mbti_personality at 2;
+		J_P <- mbti_personality at 3;
+		
+		// An agent has 80% of probabability to keep its original MBTI personality
+		is_extroverted<- E_I = 'E' ? flip(0.8) : flip(0.2);
+		is_sensing <- S_N =  'S' ? flip(0.8) : flip(0.2);
+		is_thinking <- T_F =  'T' ? flip(0.8) : flip(0.2);
+		is_judging <- J_P = 'J' ? flip(0.8) : flip(0.2);
+		
+		write "Agent " + self.name + " has " + mbti_personality + " MBTI original personality";
+		write "Agent " + self.name + " is_extroverted: " + is_extroverted;
+		write "Agent " + self.name + " is_sensing: " + is_sensing;
+		write "Agent " + self.name + " is_thinking: " + is_thinking;
+		write "Agent " + self.name + " is_judging: " + is_judging;
+		
+	}
+	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti_personality)
 	{		
@@ -93,22 +117,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
 		
-		// MBTI
-		my_personality <- string(mbti_personality);
-		
-		// E (extroverted) or I (introverted)
-		E_I <- mbti_personality at 0; 
-		extroverted_prob <- E_I = 'E' ? flip(0.8) : flip(0.2);
-		color <- extroverted_prob ? #blue:#red;
-		write "agent personality:" + E_I + " and extroverted_prob:" + extroverted_prob;
-		
-		// S (sensing) or N (iNtuiton)
-		S_N <- mbti_personality at 1; 
-		sensing_prob <- S_N=  'S' ? flip(0.8) : flip(0.2);
-		
-		// J (judging) or P (perceiving)
-		J_P <- mbti_personality at 2; 
-		judging_prob <- J_P = 'J' ? flip(0.8) : flip(0.2);
+		do define_personality(mbti_personality);
 		
 		// Begin to wander
 		do add_desire(wander);
@@ -196,7 +205,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			buyers_qty_buyers_score <- buyers_qty_buyers.pairs as_map (each.key::float(get_norm(each.value, buyers_qty_buyers)));
 	
 			// Use the right weight depend on the seller personality and calculate the combined score
-			if(!self.extroverted_prob){
+			if(!self.is_extroverted){
 				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_intraversion*buyers_qty_buyers_score[each.key]));
 			}else {
 				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_extraversion*buyers_qty_buyers_score[each.key]));
@@ -226,7 +235,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 										  buyers_distance_to_me[buyer.key], 
 										  buyers(buyer.key).qty_buyers, 
 										  buyers(buyer.key).name,
-										  int(self.extroverted_prob),
+										  int(self.is_extroverted),
 										  buyers_distance_score[buyer.key],
 										  buyers_qty_buyers_score[buyer.key],
 										  buyer.value
@@ -278,7 +287,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			buyers_density_score <- buyers_density.pairs as_map (each.key:: (max(buyers_density)>1) ? float(get_norm(each.value, buyers_density)) : 1.0);			
 			
 			// Use the right weight depend on the seller personality and calculate the combined score
-			if(!self.sensing_prob){
+			if(!self.is_sensing){
 				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_intuition*buyers_density_score[each.key]));
 			}else {
 				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_sensing*buyers_density_score[each.key]));
@@ -355,6 +364,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	// plan that has for goal to fulfill the "sell_item" desire
 	plan sellItem intention:sell_item{
+		// TODO: Add J-P personality 
 		//if the agent does not have chosen a target location, it adds the sub-intention to define a target and puts its current intention on hold
 		if (target = nil) {
 			do add_subintention(get_current_intention(), define_buyer_target, true);
@@ -396,7 +406,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		map<buyers, float> buyers_s_n_score;
 		
 		// Calculate score for intuition agents
-		if(!sensing_prob){
+		if(!is_sensing){
 			buyers_s_n_score <- get_sensing_intuition_score(possible_buyers);
 		}
 		
@@ -436,7 +446,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	  // enable view distance
 	  draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
 
-	  if(extroverted_prob){
+	  if(is_extroverted){
 	  	draw ("MBTI:E" ) color:#black size:4;
 	  } else{
 	  	draw ("MBTI:I" ) color:#black size:4;
