@@ -9,9 +9,8 @@ model MBTI
 
 global {
 
-	int nbitem <- 10;
-	int nbsellers <-2;
-	int nbbuyers <-50;
+	int nbsellers <-1;
+	int nbbuyers <-20;
 	
 	int steps <- 0;
 	int max_steps <- 1000;
@@ -23,12 +22,12 @@ global {
 		create buyers number: nbbuyers;
 
 		create sellers number: nbsellers {
-			do init(['I','N','T','J']);
+			do init(['I','N','F','P']);
 		}		
 		
-		create sellers number: nbsellers {
-			do init(['E','S','T','P']);
-		}	
+		//create sellers number: nbsellers {
+		//	do init(['E','S','T','P']);
+		//}	
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -42,8 +41,8 @@ global {
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	float viewdist_sellers <- 100.0;
-	float viewdist_buyers <- 50.0;
-	float speed <- 1.0;
+	float viewdist_buyers <- 100.0;
+	float speed <- 20.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
 
@@ -75,10 +74,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	predicate met_buyer <- new_predicate("met_buyer");
 	
 	point target;
+	point last_target;
+
 	list<point> visited_target;
 	list<point> perceived_buyers;
 	
 	list<point> sellers_in_my_view;
+	
+	list<point> possible_buyers;
 	
 	int weight_qty_buyers <- 100;
 	float min_distance_to_exclude <- 50.0;
@@ -129,15 +132,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		ask myself {do remove_intention(wander, false);	}
 	}
 	
-		//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:sellers in: viewdist_sellers*2{
 		focus id:"location_seller" var:location;
 		sellers_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
 		do remove_belief(new_predicate("location_seller"));
 	}
 	
-	list get_biggest_cluster(list possible_buyers){	  	
-	  	list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(possible_buyers, 30));
+	list get_biggest_cluster(list buyers_in_my_view){	  	
+	  	list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view, 30));
 	  	// Alter the colors to check if everything is OK
 	  	//loop cluster over: clusters {
 	  	//   write cluster;
@@ -169,6 +171,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	action get_norm(float score, map<buyers, float> buyers_scores, bool order_by_asc <- true){
+		if min(buyers_scores)=max(buyers_scores) {
+			return 1.0 ;
+		}
+		
 		if(order_by_asc){
 			return abs((score - min(buyers_scores)) / (max(buyers_scores) - min(buyers_scores)));
 		}
@@ -364,14 +370,28 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	// plan that has for goal to fulfill the "sell_item" desire
 	plan sellItem intention:sell_item{
-		// TODO: Add J-P personality 
-		//if the agent does not have chosen a target location, it adds the sub-intention to define a target and puts its current intention on hold
+		// if the agent does not have chosen a target location, it adds the sub-intention to define a target and puts its current intention on hold
+		// the agent will do the same if it has the perceiveing personality, because it has to reconsider it current decision each cycle 
 		if (target = nil) {
 			do add_subintention(get_current_intention(), define_buyer_target, true);
-			do current_intention_on_hold();
+			do current_intention_on_hold(); 
 		} else {
 			
+			last_target <- target;
+			int possible_buyers_before <- length(possible_buyers);
+			
 			do goto target: target;
+			
+			if(!self.is_judging){
+				do add_subintention(get_current_intention(), define_buyer_target, true);
+				do current_intention_on_hold();
+			}
+			
+			int possible_buyers_after <- length(possible_buyers);
+			
+			if(possible_buyers_after != possible_buyers_before){
+				write "MUDOU DE TARGET: " + possible_buyers_before;			
+			}
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
 			if (target = location)  {
@@ -394,20 +414,16 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	action get_max_score(map<buyers, float> buyer_score){
 		return buyer_score.pairs with_max_of(each.value);
 	}
-		
-	//plan that has for goal to fulfill the define item target desire. This plan is instantaneous (does not take a complete simulation step to apply).
-	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
-		list<point> possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
-		
-		possible_buyers <- remove_visited_target(possible_buyers);
+	
+	map<buyers, float> calculate_score(list<point> buyers_to_calculate){
 		map<buyers, float> buyers_e_i_score;
-		buyers_e_i_score <- get_extroversion_introversion_score(possible_buyers);
+		buyers_e_i_score <- get_extroversion_introversion_score(buyers_to_calculate);
 		
 		map<buyers, float> buyers_s_n_score;
 		
 		// Calculate score for intuition agents
 		if(!is_sensing){
-			buyers_s_n_score <- get_sensing_intuition_score(possible_buyers);
+			buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
 		}
 		
 		map<buyers, float> buyers_score;
@@ -416,6 +432,18 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key]));
 		
 		buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
+		
+		return buyers_score;
+	}
+		
+	//plan that has for goal to fulfill the define item target desire. This plan is instantaneous (does not take a complete simulation step to apply).
+	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
+		possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+	
+		possible_buyers <- remove_visited_target(possible_buyers);
+		
+		map<buyers, float> buyers_score;
+		buyers_score <- calculate_score(possible_buyers);
 						
 		if (empty(possible_buyers)) {
 			do remove_intention(sell_item, true);
@@ -469,7 +497,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 species buyers skills: [moving] control: simple_bdi {	
 	rgb color <- #blue;
 	float speed <- 3.0;
-	int qty_buyers <- rnd (1, 30);
+	//int qty_buyers <- rnd (1, 30);
+	int qty_buyers <- 1;
 	
 	image_file buyer_icon <- image_file("../includes/buyer.png");
 	
