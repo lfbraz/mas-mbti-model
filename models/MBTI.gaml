@@ -9,7 +9,7 @@ model MBTI
 
 global {
 
-	int nbsellers <-1;
+	int nbsellers <-5;
 	int nbbuyers <-20;
 	
 	int steps <- 0;
@@ -41,7 +41,7 @@ global {
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	float viewdist_sellers <- 100.0;
-	float viewdist_buyers <- 100.0;
+	float viewdist_buyers <- 50.0;
 	float speed <- 20.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
@@ -74,7 +74,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	predicate met_buyer <- new_predicate("met_buyer");
 	
 	point target;
-	point last_target;
+	point new_target;
 
 	list<point> visited_target;
 	list<point> perceived_buyers;
@@ -102,6 +102,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		is_sensing <- S_N =  'S' ? flip(0.8) : flip(0.2);
 		is_thinking <- T_F =  'T' ? flip(0.8) : flip(0.2);
 		is_judging <- J_P = 'J' ? flip(0.8) : flip(0.2);
+		is_judging <- false;
+		is_thinking <- false;
 		
 		write "Agent " + self.name + " has " + mbti_personality + " MBTI original personality";
 		write "Agent " + self.name + " is_extroverted: " + is_extroverted;
@@ -350,6 +352,33 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		return buyers_score_t_f;		
 	}
+	
+	action get_judging_perceiving_score(list<point> buyers_to_calculate){
+		map<buyers, float> new_buyers_score;
+		new_buyers_score <- calculate_score(possible_buyers);
+				
+		if (!empty(new_buyers_score)) {
+			map<buyers, float> max_buyer_score <- get_max_score(new_buyers_score);
+			new_target <- point(max_buyer_score.keys[0]);
+			
+			if (target != point(max_buyer_score.keys[0])) {
+				write "Target has changed because J-P: before " + target + " after " + new_target ;
+				write "new_buyers_score: " + new_buyers_score;
+				write "max_buyer_score:" + max_buyer_score;
+				write "max_buyer_score.values[0]: " + max_buyer_score.values[0];
+	
+				// If the target has changed seller must move to this new direction
+				target <- new_target;			
+				do goto target: target;
+							
+				// log into db the calculated score
+				do insert (params: PARAMS,
+							into: "TB_TARGET",
+							columns: ["INTERACTION", "TYPE", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
+							values:  [steps, "NEW TARGET (J-P)", self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);		
+			}	
+		}
+	}
 	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
 	rule belief: new_predicate("location_buyer") new_desire: sell_item strength:10.0;
@@ -377,21 +406,13 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			do current_intention_on_hold(); 
 		} else {
 			
-			last_target <- target;
-			int possible_buyers_before <- length(possible_buyers);
-			
 			do goto target: target;
 			
+			// If is a perceiveing agent the target can change each cycle
 			if(!self.is_judging){
-				do add_subintention(get_current_intention(), define_buyer_target, true);
-				do current_intention_on_hold();
-			}
+				do get_judging_perceiving_score(possible_buyers);
+			}			
 			
-			int possible_buyers_after <- length(possible_buyers);
-			
-			if(possible_buyers_after != possible_buyers_before){
-				write "MUDOU DE TARGET: " + possible_buyers_before;			
-			}
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
 			if (target = location)  {
@@ -444,21 +465,22 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		map<buyers, float> buyers_score;
 		buyers_score <- calculate_score(possible_buyers);
-						
-		if (empty(possible_buyers)) {
+		
+		// It is important to check if there is any buyer to consider because T-F can remove all the possible agents
+		if (empty(buyers_score)) {
 			do remove_intention(sell_item, true);
 			do remove_intention(define_buyer_target, true);
 			do add_desire(wander);
 		} else {
-		
+			
 			map<buyers, float> max_buyer_score <- get_max_score(buyers_score);
 			target <- point(max_buyer_score.keys[0]);
 			
 			// log into db the calculated score
 			do insert (params: PARAMS,
 						into: "TB_TARGET",
-						columns: ["INTERACTION", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
-						values:  [steps, self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);
+						columns: ["INTERACTION", "TYPE", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
+						values:  [steps, "ORIGINAL", self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);
 						
 			if(!already_visited_cluster) {
 				already_visited_cluster <- true;
