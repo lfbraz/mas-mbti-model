@@ -21,13 +21,13 @@ global {
 	init {
 		create buyers number: nbbuyers;
 
-		create sellers number: nbsellers {
-			do init(['I','N','F','P']);
-		}		
-		
 		//create sellers number: nbsellers {
-		//	do init(['E','S','T','P']);
-		//}	
+		//	do init(['I','N','F','P']);
+		//}		
+		
+		create sellers number: nbsellers {
+			do init(['E','S','T','P']);
+		}	
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -42,7 +42,7 @@ global {
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	float viewdist_sellers <- 100.0;
 	float viewdist_buyers <- 50.0;
-	float speed <- 20.0;
+	float speed <- 10.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
 
@@ -98,10 +98,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		J_P <- mbti_personality at 3;
 		
 		// An agent has 80% of probabability to keep its original MBTI personality
-		is_extroverted<- E_I = 'E' ? flip(0.8) : flip(0.2);
+		is_extroverted<- E_I = 'E' ? true : false;
 		is_sensing <- S_N =  'S' ? flip(0.8) : flip(0.2);
-		is_thinking <- T_F =  'T' ? flip(0.8) : flip(0.2);
-		is_judging <- J_P = 'J' ? flip(0.8) : flip(0.2);
+		
 		is_judging <- false;
 		is_thinking <- false;
 		
@@ -409,9 +408,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			do goto target: target;
 			
 			// If is a perceiveing agent the target can change each cycle
-			if(!self.is_judging){
-				do get_judging_perceiving_score(possible_buyers);
-			}			
+			//if(!self.is_judging){
+			//	do get_judging_perceiving_score(possible_buyers);
+			//}			
 			
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
@@ -420,7 +419,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				
 				buyers current_buyer <- buyers first_with (target = each.location);
 				if current_buyer != nil {
-					do add_belief(met_buyer);			 	
+
+					ask current_buyer { already_visited <- true; }
+					do add_belief(met_buyer);
 				}
 				
 				do remove_belief(new_predicate("location_buyer", ["location_value"::target]));
@@ -443,16 +444,16 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		map<buyers, float> buyers_s_n_score;
 		
 		// Calculate score for intuition agents
-		if(!is_sensing){
-			buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
-		}
+		//if(!is_sensing){
+		//	buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
+		//}
 		
 		map<buyers, float> buyers_score;
 		
 		// Sum scores E-I and S-N		
 		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key]));
 		
-		buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
+		//buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
 		
 		return buyers_score;
 	}
@@ -513,18 +514,21 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	  //draw ("curIntention:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+3*4};
 	  //draw ("possible_itens:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+4*4}; 		
 	}
+	
+
 }
 
 
 species buyers skills: [moving] control: simple_bdi {	
 	rgb color <- #blue;
 	float speed <- 3.0;
-	//int qty_buyers <- rnd (1, 30);
-	int qty_buyers <- 1;
+	int qty_buyers <- rnd (1, 30);
+	//int qty_buyers <- 1;
 	
 	image_file buyer_icon <- image_file("../includes/buyer.png");
 	
 	predicate wander <- new_predicate("wander");
+	bool already_visited <- false;
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	init
@@ -541,7 +545,7 @@ species buyers skills: [moving] control: simple_bdi {
 	aspect default {  
 	  draw rectangle(30, 15) color: #orange at:{location.x,location.y-20};
 	  draw (string(self.name)) color:#black size:4 at:{location.x-10,location.y-18};
-	  draw circle(5) color: #green at:{location.x,location.y+20};
+	  draw circle(5) color: already_visited ? #blue : #green at:{location.x,location.y+20};
 	  draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; 
 	  draw buyer_icon size: 40;
 	}
