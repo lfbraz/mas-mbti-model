@@ -10,7 +10,7 @@ model MBTI
 global {
 
 	int nbsellers <-1;
-	int nbbuyers <-20;
+	int nbbuyers <-40;
 	
 	int steps <- 0;
 	int max_steps <- 1000;
@@ -22,12 +22,12 @@ global {
 		create buyers number: nbbuyers;
 
 		create sellers number: nbsellers {
-			do init(['I','N','F','P']);
+			do init(['I','N','T','P']);
 		}		
 		
-		//create sellers number: nbsellers {
-		//	do init(['E','S','T','P']);
-		//}	
+		create sellers number: nbsellers {
+			do init(['E','N','T','P']);
+		}	
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -40,7 +40,7 @@ global {
 }
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
-	float viewdist_sellers <- 100.0;
+	float viewdist_sellers <- 50.0;
 	float viewdist_buyers <- 50.0;
 	float speed <- 20.0;
 	int count_people_around <- 0 ;
@@ -104,7 +104,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		is_judging <- J_P = 'J' ? flip(0.8) : flip(0.2);
 
 		
-		is_extroverted <- true;
+		is_extroverted <- false;
 		is_sensing <- false;
 		is_judging <- false;
 		is_thinking <- false;
@@ -343,14 +343,15 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	action get_thinking_feeling_score(list list_of_points, map<buyers, float> buyers_score_t_f){
 		list sellers_perceived <- get_sellers_from_points(sellers_in_my_view);
-	
+		
 		loop seller over: sellers_perceived{
 			loop buyer over: buyers_score_t_f.pairs{
 				
 				// if the buyers is in a minimal distance to the colleages we exclude it
 				// TODO: consider teamates
 				if(point(seller) distance_to point(buyer.key) < min_distance_to_exclude){
-					remove all: buyer from: buyers_score_t_f;	
+					remove all: buyer from: buyers_score_t_f;
+					write "removido target: " + buyer; 
 				}
 			}
 		}
@@ -414,9 +415,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			do goto target: target;
 			
 			// If is a perceiveing agent the target can change each cycle
-			if(!self.is_judging){
-				do get_judging_perceiving_score(possible_buyers);
-			}			
+			//if(!self.is_judging){
+			//	do get_judging_perceiving_score(possible_buyers);
+			//}			
 			
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
@@ -425,6 +426,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				
 				buyers current_buyer <- buyers first_with (target = each.location);
 				if current_buyer != nil {
+					ask current_buyer {visited <- true;}
 					do add_belief(met_buyer);			 	
 				}
 				
@@ -449,18 +451,19 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		map<buyers, float> buyers_s_n_score;
 		
 		// Calculate score for intuition agents
-		if(!is_sensing){
-			buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
-		} else {
-			buyers_s_n_score <- map<buyers, float>(buyers_to_calculate collect (each));
-		}
+		//if(!is_sensing){
+		//	buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
+		//}
 		
 		map<buyers, float> buyers_score;
-		
+
 		// Sum scores E-I and S-N		
 		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key]));
+		//buyers_score <- buyers_s_n_score;
 		
-		buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
+		if(!is_thinking){
+			buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);			
+		}
 		
 		return buyers_score;
 	}
@@ -504,10 +507,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	  // enable view distance
 	  draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
 
-	  if(is_extroverted){
-	  	draw ("MBTI:E" ) color:#black size:4;
+	  if(is_thinking){
+	  	draw ("MBTI:T" ) color:#black size:4 at:{location.x -8,location.y+4};
 	  } else{
-	  	draw ("MBTI:I" ) color:#black size:4;
+	  	draw ("MBTI:F" ) color:#black size:4 at:{location.x -8,location.y+4};
 	  }
 
 	  //draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};

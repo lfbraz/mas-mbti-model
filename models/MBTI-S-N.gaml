@@ -10,7 +10,7 @@ model MBTI
 global {
 
 	int nbsellers <-1;
-	int nbbuyers <-20;
+	int nbbuyers <-40;
 	
 	int steps <- 0;
 	int max_steps <- 1000;
@@ -21,13 +21,13 @@ global {
 	init {
 		create buyers number: nbbuyers;
 
-		create sellers number: nbsellers {
-			do init(['I','N','F','P']);
-		}		
-		
 		//create sellers number: nbsellers {
-		//	do init(['E','S','T','P']);
-		//}	
+		//	do init(['I','N','F','P']);
+		//}		
+		
+		create sellers number: nbsellers {
+			do init(['E','N','T','P']);
+		}	
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -414,9 +414,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			do goto target: target;
 			
 			// If is a perceiveing agent the target can change each cycle
-			if(!self.is_judging){
-				do get_judging_perceiving_score(possible_buyers);
-			}			
+			//if(!self.is_judging){
+			//	do get_judging_perceiving_score(possible_buyers);
+			//}			
 			
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
@@ -425,6 +425,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				
 				buyers current_buyer <- buyers first_with (target = each.location);
 				if current_buyer != nil {
+					ask current_buyer {visited <- true;}
 					do add_belief(met_buyer);			 	
 				}
 				
@@ -444,23 +445,22 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	map<buyers, float> calculate_score(list<point> buyers_to_calculate){
 		map<buyers, float> buyers_e_i_score;
 		
-		buyers_e_i_score <- get_extroversion_introversion_score(buyers_to_calculate);
+		//buyers_e_i_score <- get_extroversion_introversion_score(buyers_to_calculate);
 		
 		map<buyers, float> buyers_s_n_score;
 		
 		// Calculate score for intuition agents
 		if(!is_sensing){
 			buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
-		} else {
-			buyers_s_n_score <- map<buyers, float>(buyers_to_calculate collect (each));
 		}
 		
 		map<buyers, float> buyers_score;
-		
+		write buyers_s_n_score;
 		// Sum scores E-I and S-N		
-		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key]));
+		// buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key]));
+		buyers_score <- buyers_s_n_score;
 		
-		buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
+		// buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
 		
 		return buyers_score;
 	}
@@ -504,10 +504,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	  // enable view distance
 	  draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
 
-	  if(is_extroverted){
-	  	draw ("MBTI:E" ) color:#black size:4;
+	  if(is_sensing){
+	  	draw ("MBTI:S" ) color:#black size:4 at:{location.x -8,location.y+4};
 	  } else{
-	  	draw ("MBTI:I" ) color:#black size:4;
+	  	draw ("MBTI:N" ) color:#black size:4 at:{location.x -8,location.y+4};
 	  }
 
 	  //draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
@@ -528,8 +528,8 @@ species buyers skills: [moving] control: simple_bdi {
 	rgb color <- #blue;
 	float speed <- 3.0;
 	bool visited <- false;
-	//int qty_buyers <- rnd (1, 30);
-	int qty_buyers <- 1;
+	 int qty_buyers <- rnd (1, 30);
+	//int qty_buyers <- 1;
 	
 	image_file buyer_icon <- image_file("../includes/buyer.png");
 	
