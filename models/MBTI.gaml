@@ -102,12 +102,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		is_sensing <- S_N =  'S' ? flip(0.8) : flip(0.2);
 		is_thinking <- T_F =  'T' ? flip(0.8) : flip(0.2);
 		is_judging <- J_P = 'J' ? flip(0.8) : flip(0.2);
-
-		
-		is_extroverted <- true;
-		is_sensing <- false;
-		is_judging <- false;
-		is_thinking <- false;
 		
 		write "Agent " + self.name + " has " + mbti_personality + " MBTI original personality";
 		write "Agent " + self.name + " is_extroverted: " + is_extroverted;
@@ -121,6 +115,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti_personality)
 	{		
+		
+		// set my personality
+		my_personality <- string(mbti_personality);
 		
 		// clean table
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
@@ -384,6 +381,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			}	
 		}
 	}
+	
+	action persist_seller_action(buyers buyer_target, point location_target){		
+		// log into db the calculated score
+		do insert (params: PARAMS,
+					into: "TB_SELLER_PRODUCTIVITY",
+					columns: ["INTERACTION",  "SELLER_NAME", "SELLER_MBTI", "BUYER_TARGET", "LOCATION_TARGET", "IS_EXTROVERTED", "IS_SENSING", "IS_THINKING", "IS_JUDGING"],
+					values:  [steps, self.name, self.my_personality, buyer_target, location_target, int(is_extroverted), int(is_sensing), int(is_thinking), int(is_judging)]);		
+	}
 	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
 	rule belief: new_predicate("location_buyer") new_desire: sell_item strength:10.0;
@@ -425,6 +430,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				
 				buyers current_buyer <- buyers first_with (target = each.location);
 				if current_buyer != nil {
+					ask current_buyer {visited <- true;}
+					// persist into the db the seller`s action
+					do persist_seller_action(current_buyer, target);	
 					do add_belief(met_buyer);			 	
 				}
 				
@@ -528,8 +536,7 @@ species buyers skills: [moving] control: simple_bdi {
 	rgb color <- #blue;
 	float speed <- 3.0;
 	bool visited <- false;
-	//int qty_buyers <- rnd (1, 30);
-	int qty_buyers <- 1;
+	int qty_buyers <- rnd (1, 30);
 	
 	image_file buyer_icon <- image_file("../includes/buyer.png");
 	
