@@ -9,7 +9,7 @@ model MBTI
 
 global {
 
-	int nbsellers <-1;
+	int nbsellers <-2;
 	int nbbuyers <-20;
 	
 	int steps <- 0;
@@ -25,9 +25,9 @@ global {
 			do init(['I','N','F','P']);
 		}		
 		
-		//create sellers number: nbsellers {
-		//	do init(['E','S','T','P']);
-		//}	
+		create sellers number: nbsellers {
+			do init(['E','S','T','P']);
+		}	
 	}
 	
 	reflex stop when:steps=max_steps{

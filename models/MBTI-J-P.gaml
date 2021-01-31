@@ -22,11 +22,11 @@ global {
 		create buyers number: nbbuyers;
 
 		create sellers number: nbsellers {
-			do init(['I','N','T','P']);
+			do init(['I','N','F','P']);
 		}		
 		
 		create sellers number: nbsellers {
-			do init(['E','N','T','P']);
+			do init(['E','N','F','P']);
 		}	
 	}
 	
@@ -102,7 +102,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		is_sensing <- S_N =  'S' ? flip(0.8) : flip(0.2);
 		is_thinking <- T_F =  'T' ? flip(0.8) : flip(0.2);
 		is_judging <- J_P = 'J' ? flip(0.8) : flip(0.2);
-
 		
 		is_extroverted <- false;
 		is_sensing <- false;
@@ -351,7 +350,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				// TODO: consider teamates
 				if(point(seller) distance_to point(buyer.key) < min_distance_to_exclude){
 					remove all: buyer from: buyers_score_t_f;
-					write "removido target: " + buyer; 
 				}
 			}
 		}
@@ -369,9 +367,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			
 			if (target != point(max_buyer_score.keys[0])) {
 				write "Target has changed because J-P: before " + target + " after " + new_target ;
-				write "new_buyers_score: " + new_buyers_score;
-				write "max_buyer_score:" + max_buyer_score;
-				write "max_buyer_score.values[0]: " + max_buyer_score.values[0];
 	
 				// If the target has changed seller must move to this new direction
 				target <- new_target;			
@@ -415,9 +410,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			do goto target: target;
 			
 			// If is a perceiveing agent the target can change each cycle
-			//if(!self.is_judging){
-			//	do get_judging_perceiving_score(possible_buyers);
-			//}			
+			if(!self.is_judging){
+				do get_judging_perceiving_score(possible_buyers);
+			}			
 			
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
@@ -507,10 +502,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	  // enable view distance
 	  draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
 
-	  if(is_thinking){
-	  	draw ("MBTI:T" ) color:#black size:4 at:{location.x -8,location.y+4};
+	  if(is_judging){
+	  	draw ("MBTI:J" ) color:#black size:4 at:{location.x -8,location.y+4};
 	  } else{
-	  	draw ("MBTI:F" ) color:#black size:4 at:{location.x -8,location.y+4};
+	  	draw ("MBTI:P" ) color:#black size:4 at:{location.x -8,location.y+4};
 	  }
 
 	  //draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
