@@ -33,3 +33,10 @@ CREATE TABLE TB_TARGET (ID INTEGER PRIMARY KEY AUTOINCREMENT,
                         BUYER_TARGET TEXT,
                         SCORE
 )
+
+
+CREATE TABLE TB_SELLER_PRODUCTIVITY(ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    SELLER_NAME TEXT,
+                                    SELLER_MBTI TEXT,
+                                    BUYER_TARGET TEXT,
+                                    TIMESTAMP DATETIME DEFAULT CURRENT_TIMESTAMP)
