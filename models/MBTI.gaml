@@ -9,8 +9,8 @@ model MBTI
 
 global {
 
-	int nbsellers <-2;
-	int nbbuyers <-20;
+	int nbsellers <-1;
+	int nbbuyers <-50;
 	
 	int steps <- 0;
 	int max_steps <- 1000;
@@ -25,9 +25,9 @@ global {
 			do init(['I','N','F','P']);
 		}		
 		
-		create sellers number: nbsellers {
-			do init(['E','S','T','P']);
-		}	
+		//create sellers number: nbsellers {
+		//	do init(['E','S','T','J']);
+		//}	
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -48,7 +48,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 
 	// MBTI variables
 	string my_personality;
-
+	list my_real_personality;
+	
 	string E_I;
 	bool is_extroverted;
 	
@@ -109,6 +110,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		write "Agent " + self.name + " is_thinking: " + is_thinking;
 		write "Agent " + self.name + " is_judging: " + is_judging;
 		
+		add is_extroverted?"E":"I" to: my_real_personality;
+		add is_sensing?"S":"N" to: my_real_personality;
+		add is_thinking?"T":"F" to: my_real_personality;
+		add is_judging?"J":"P" to: my_real_personality;
+		
 		color <- #blue;		
 	}
 	
@@ -116,6 +122,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	action init (list<string> mbti_personality)
 	{		
 		
+		write "init";
 		// set my personality
 		my_personality <- string(mbti_personality);
 		
@@ -123,17 +130,22 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
+		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY";
 		
 		do define_personality(mbti_personality);
-		
+
 		// Begin to wander
 		do add_desire(wander);
 	}
 	
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:buyers in: viewdist_buyers*2{
-		focus id:"location_buyer" var:location;		
-		ask myself {do remove_intention(wander, false);	}
+		// Seller only focus on buyer if it wasn`t visited yet
+		if(!visited){
+			focus id:"location_buyer" var:location;
+			write "buyer:" + name + " distance to me:" + point(location) distance_to point(myself.location);
+			ask myself {do remove_intention(wander, false);	}	
+		}		
 	}
 	
 	perceive target:sellers in: viewdist_sellers*2{
@@ -386,8 +398,27 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		// log into db the calculated score
 		do insert (params: PARAMS,
 					into: "TB_SELLER_PRODUCTIVITY",
-					columns: ["INTERACTION",  "SELLER_NAME", "SELLER_MBTI", "BUYER_TARGET", "LOCATION_TARGET", "IS_EXTROVERTED", "IS_SENSING", "IS_THINKING", "IS_JUDGING"],
-					values:  [steps, self.name, self.my_personality, buyer_target, location_target, int(is_extroverted), int(is_sensing), int(is_thinking), int(is_judging)]);		
+					columns: ["INTERACTION",  
+							  "SELLER_NAME", 
+							  "SELLER_ORIGINAL_MBTI", 
+							  "SELLER_REAL_MBTI", 
+							  "BUYER_TARGET", 
+							  "LOCATION_TARGET", 
+							  "IS_EXTROVERTED", 
+							  "IS_SENSING", 
+							  "IS_THINKING", 
+							  "IS_JUDGING"],
+					values:  [steps, 
+							  self.name, 
+							  self.my_personality, 
+							  self.my_real_personality, 
+							  buyer_target, 
+							  location_target, 
+							  int(is_extroverted), 
+							  int(is_sensing), 
+							  int(is_thinking), 
+							  int(is_judging)
+					]);
 	}
 	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
@@ -510,7 +541,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	  draw circle(18) color: color;
 	  
 	  // enable view distance
-	  draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
+	  //draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
 
 	  if(is_extroverted){
 	  	draw ("MBTI:E" ) color:#black size:4;
