@@ -375,33 +375,75 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		return score_s_n;		
 	}
 	
-	// TODO: calculate according to MADM procedure
 	action get_thinking_feeling_score(list list_of_points, map<buyers, float> buyers_score_t_f){
 		map<buyers, float> score_t_f;
 		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
-		write "buyers_in_my_view: " + buyers_in_my_view;
 		
 		list sellers_perceived <- get_sellers_from_points(sellers_in_my_view);
-		write "sellers_perceived: " + sellers_perceived + " by: " + self.name;		
-	
-		int inc_num_seller_close_to_buyer <- 0;
-		map<buyers, int> num_seller_close_to_buyer;
 		
+		map<buyers, float> buyers_distance_to_me;
+		map<buyers, float> buyers_distance_norm;
+				
+		// Get the distance of each buyer to the seller and calculate the inverted norm score
+		buyers_distance_to_me <- get_distances(buyers_in_my_view);		
+
+		// Normalize distance as a cost attribute
+		buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));
+		
+		float inc_num_sellers_close_to_buyer <- 0.0;
+		map<buyers, float> num_sellers_close_to_buyer;		
+	
 		loop buyer over: buyers_in_my_view{
 			loop seller over: sellers_perceived{
 				if(point(seller) distance_to point(buyer) < min_distance_to_exclude){
-					write "perspective: " + self.name + " from seller:" + seller + " to buyer:" + buyer;
-					write point(seller) distance_to point(buyer);
-					inc_num_seller_close_to_buyer  <- inc_num_seller_close_to_buyer + 1;	
+					inc_num_sellers_close_to_buyer  <- inc_num_sellers_close_to_buyer + 1.0;	
 				}
 			}
-			write "buyer: " + buyer + " - num_seller_close_to_buyer: " + inc_num_seller_close_to_buyer;
-			add buyer::inc_num_seller_close_to_buyer to:num_seller_close_to_buyer;
-			inc_num_seller_close_to_buyer <- 0;
+			add buyer::inc_num_sellers_close_to_buyer to:num_sellers_close_to_buyer;
+			inc_num_sellers_close_to_buyer <- 0.0;
 		}
+	
+		// We give more weight for feeling agents
+		float sellers_close_to_buyer_weight;
+		float distance_weight; 
 		
-		write "num_seller_close_to_buyer: " + num_seller_close_to_buyer;
-		return buyers_score_t_f;		
+		sellers_close_to_buyer_weight <- !self.is_thinking ? 0.8 : 0.2; 
+		distance_weight <- 1 - sellers_close_to_buyer_weight ; 
+		
+		// Normalize num_seller_close_to_buyer as a cost attribute and apply the weight
+		map<buyers, float> num_sellers_close_to_buyer_norm;
+		num_sellers_close_to_buyer_norm <- num_sellers_close_to_buyer.pairs as_map (each.key::(get_normalized_values(each.value, num_sellers_close_to_buyer, "cost")));		
+		
+		// Calculate SCORE-T-F
+		score_t_f <- buyers_distance_norm.pairs as_map (each.key::((each.value*distance_weight)+(num_sellers_close_to_buyer_norm[each.key]*sellers_close_to_buyer_weight)));
+		
+		// Log to the database
+			loop buyer over: score_t_f.pairs {
+				// log into db the calculated score
+				do insert (params: PARAMS,
+							into: "TB_SCORE_T_F",
+							columns: ["INTERACTION", 
+									  "SELLER_NAME", 
+									  "MBTI_SELLER", 
+									  "NUM_SELLERS_CLOSE_TO_BUYER",
+									  "DISTANCE_TO_BUYER",
+									  "BUYER_NAME",
+									  "SCORE_DISTANCE",
+									  "SCORE_SELLER_CLOSE_TO_BUYER", 
+									  "SCORE"],
+							values:  [steps, 
+									  self.name, 
+									  self.my_personality, 
+									  num_sellers_close_to_buyer[buyer.key],
+									  buyers_distance_to_me[buyer.key], 
+									  buyers(buyer.key).name,
+									  buyers_distance_norm[buyer.key],
+									  num_sellers_close_to_buyer_norm[buyer.key], 
+									  buyer.value
+									]);		
+			}
+		
+		return score_t_f;		
 	}
 	
 	// TODO: calculate according to MADM procedure
