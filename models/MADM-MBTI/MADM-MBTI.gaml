@@ -147,10 +147,20 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}		
 	}
 	
-	perceive target:sellers in: viewdist_sellers*2{
-		focus id:"location_seller" var:location;
-		sellers_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
-		do remove_belief(new_predicate("location_seller"));
+	//perceive target:sellers in: viewdist_sellers*2{
+	//	focus id:"location_seller" var:location;
+	//	sellers_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+	//	do remove_belief(new_predicate("location_seller"));
+	//}
+	
+	// TODO: consider teamates
+	perceive target:sellers {
+		// We must validate that only our teammates would be considered (also remove the seller itself)
+		if(myself.name != self.name){
+			focus id:"location_seller" var:location;
+			sellers_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+			do remove_belief(new_predicate("location_seller"));		
+		}
 	}
 	
 	list get_biggest_cluster(list buyers_in_my_view){	  	
@@ -287,8 +297,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}
 	}	
 
-	
-	// TODO: calculate according to MADM procedure
 	// TODO: we must add a parameter to simple_clustering_by_distance
 	action get_sensing_intuition_score(list list_of_points){
 		map<buyers, float> score_s_n;
@@ -369,19 +377,30 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	// TODO: calculate according to MADM procedure
 	action get_thinking_feeling_score(list list_of_points, map<buyers, float> buyers_score_t_f){
+		map<buyers, float> score_t_f;
+		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
+		write "buyers_in_my_view: " + buyers_in_my_view;
+		
 		list sellers_perceived <- get_sellers_from_points(sellers_in_my_view);
+		write "sellers_perceived: " + sellers_perceived + " by: " + self.name;		
 	
-		loop seller over: sellers_perceived{
-			loop buyer over: buyers_score_t_f.pairs{
-				
-				// if the buyers is in a minimal distance to the colleages we exclude it
-				// TODO: consider teamates
-				if(point(seller) distance_to point(buyer.key) < min_distance_to_exclude){
-					remove all: buyer from: buyers_score_t_f;	
+		int inc_num_seller_close_to_buyer <- 0;
+		map<buyers, int> num_seller_close_to_buyer;
+		
+		loop buyer over: buyers_in_my_view{
+			loop seller over: sellers_perceived{
+				if(point(seller) distance_to point(buyer) < min_distance_to_exclude){
+					write "perspective: " + self.name + " from seller:" + seller + " to buyer:" + buyer;
+					write point(seller) distance_to point(buyer);
+					inc_num_seller_close_to_buyer  <- inc_num_seller_close_to_buyer + 1;	
 				}
 			}
+			write "buyer: " + buyer + " - num_seller_close_to_buyer: " + inc_num_seller_close_to_buyer;
+			add buyer::inc_num_seller_close_to_buyer to:num_seller_close_to_buyer;
+			inc_num_seller_close_to_buyer <- 0;
 		}
 		
+		write "num_seller_close_to_buyer: " + num_seller_close_to_buyer;
 		return buyers_score_t_f;		
 	}
 	
