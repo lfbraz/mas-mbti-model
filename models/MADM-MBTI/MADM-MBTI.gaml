@@ -143,7 +143,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		// Seller only focus on buyer if it wasn`t visited yet
 		if(!visited){
 			focus id:"location_buyer" var:location;
-			write "buyer:" + name + " distance to me:" + point(location) distance_to point(myself.location);
 			ask myself {do remove_intention(wander, false);	}	
 		}		
 	}
@@ -290,8 +289,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 
 	
 	// TODO: calculate according to MADM procedure
+	// TODO: we must add a parameter to simple_clustering_by_distance
 	action get_sensing_intuition_score(list list_of_points){
 		map<buyers, float> agents_score;
+		map<buyers, float> score_s_n;
 		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		// When there is a unique agent we can simply consider it as the max score
@@ -302,17 +303,15 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 			map<buyers, float> buyers_distance_to_me;
 			map<buyers, float> buyers_distance_score;
+			map<buyers, float> buyers_distance_norm;
 				
 			// Get the distance of each buyer to the seller and calculate the inverted norm score
-			// buyers_distance_to_me  <- map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
-			buyers_distance_to_me <- get_distances(buyers_in_my_view);
+			buyers_distance_to_me <- get_distances(buyers_in_my_view);			
 			
-			buyers_distance_score <- buyers_distance_to_me.pairs as_map (each.key::float(get_norm(each.value, buyers_distance_to_me, false)));
-				
+			buyers_distance_score <- buyers_distance_to_me.pairs as_map (each.key::float(get_norm(each.value, buyers_distance_to_me, false)));			
+			buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));			
+			
 			list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view, 30));
-			int min_cluster <- min(clusters collect (length(each)));
-			int max_cluster <- max(clusters collect (length(each)));
-			
 			list<map<list<buyers>, int>> clusters_density <-list<map<list<buyers>, int>>(clusters collect (each::length(each)));
 			
 			// Here we must navigate in three different levels because of the structure of the list of maps of lists		
@@ -326,9 +325,17 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				}
 			}
 			
+			float distance_weight;
+			float density_weight;
+			
+			density_weight <- self.is_sensing ? 0.8 : 0.2; 
+			distance_weight <- 1 - density_weight; 
+			
 			// Get the distance of each buyer to the seller and calculate the inverted norm score
 			map<buyers, float> buyers_density_score;
+			map<buyers, float> buyers_density_norm;
 			buyers_density_score <- buyers_density.pairs as_map (each.key:: (max(buyers_density)>1) ? float(get_norm(each.value, buyers_density)) : 1.0);			
+			buyers_density_norm <- buyers_density.pairs as_map (each.key::(max(buyers_density)>1) ? get_normalized_values(each.value, buyers_density, "benefit") : 1.0);
 			
 			// Use the right weight depend on the seller personality and calculate the combined score
 			if(!self.is_sensing){
@@ -336,6 +343,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			}else {
 				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_sensing*buyers_density_score[each.key]));
 			}
+			
+			score_s_n <- buyers_distance_norm.pairs as_map (each.key::((each.value*distance_weight)+(buyers_density_norm[each.key]*density_weight)));
+			
+			write "agents_score: " + agents_score;
+			write "score_s_n: " + score_s_n;
 			
 			// Calculate the final norm score
 			agents_score <- agents_score.pairs as_map (each.key::float(get_norm(each.value, agents_score)));
@@ -512,11 +524,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		map<buyers, float> buyers_s_n_score;
 		
 		// Calculate score for intuition agents
-		if(!is_sensing){
-			buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
-		} else {
-			buyers_s_n_score <- map<buyers, float>(buyers_to_calculate collect (each));
-		}
+		buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
 		
 		map<buyers, float> buyers_score;
 		
