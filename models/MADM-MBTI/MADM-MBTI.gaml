@@ -84,13 +84,13 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	list<point> possible_buyers;
 	
-	int weight_qty_buyers <- 100;
 	float min_distance_to_exclude <- 50.0;
 	
-	int weight_intraversion <- -100;
-	int weight_extraversion <- 100;
-	int weight_sensing <- -100;
-	int weight_intuition <- 100;	
+	float weight_e_i <- 1/3;
+	float weight_s_n <- 1/3;
+	float weight_t_f <- 1/3;
+	
+	int cluster_distance <- 30;	
 	
 	action define_personality(list<string> mbti_personality){
 		E_I <- mbti_personality at 0;
@@ -98,7 +98,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		T_F <- mbti_personality at 2;
 		J_P <- mbti_personality at 3;
 		
-		// An agent has 80% of probabability to keep its original MBTI personality
+		// An seller agent has 80% of probabability to keep its original MBTI personality
 		is_extroverted<- E_I = 'E' ? flip(0.8) : flip(0.2);
 		is_sensing <- S_N =  'S' ? flip(0.8) : flip(0.2);
 		is_thinking <- T_F =  'T' ? flip(0.8) : flip(0.2);
@@ -129,6 +129,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		// clean table
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
+		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY";
 		
@@ -164,7 +165,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	list get_biggest_cluster(list buyers_in_my_view){	  	
-	  	list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view, 30));
+	  	list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view, cluster_distance));
 	  	// Alter the colors to check if everything is OK
 	  	//loop cluster over: clusters {
 	  	//   write cluster;
@@ -193,20 +194,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	list remove_visited_target(list list_of_points){
 		remove all:visited_target from: list_of_points;
 		return list_of_points;
-	}
-	
-	// TODO: remove after all the scoring methods are done
-	action get_norm(float score, map<buyers, float> buyers_scores, bool order_by_asc <- true){
-		if min(buyers_scores)=max(buyers_scores) {
-			return 1.0 ;
-		}
-		
-		if(order_by_asc){
-			return abs((score - min(buyers_scores)) / (max(buyers_scores) - min(buyers_scores)));
-		}
-		else {
-			return abs((score - max(buyers_scores)) / (min(buyers_scores) - max(buyers_scores)));	
-		} 
 	}
 	
 	float get_normalized_values(float value, map<buyers, float> buyers_values, string criteria_type){
@@ -297,7 +284,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}
 	}	
 
-	// TODO: we must add a parameter to simple_clustering_by_distance
 	action get_sensing_intuition_score(list list_of_points){
 		map<buyers, float> score_s_n;
 		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
@@ -573,7 +559,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		// Sum all scores
 		map<buyers, float> buyers_score;
-		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key] + buyers_t_f_score[each.key]));		
+		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::((each.value*weight_e_i) + 
+																					  (buyers_s_n_score[each.key]*weight_s_n) + 
+																					  (buyers_t_f_score[each.key]*weight_t_f))));
 		
 		return buyers_score;
 	}
@@ -581,9 +569,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//plan that has for goal to fulfill the define item target desire. This plan is instantaneous (does not take a complete simulation step to apply).
 	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
 		possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
-	
+		
+		// If a target was already visited we must removed it
 		possible_buyers <- remove_visited_target(possible_buyers);
 		
+		// Calculate the scores based on MADM method
 		map<buyers, float> buyers_score;
 		buyers_score <- calculate_score(possible_buyers);
 		
@@ -594,7 +584,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			do add_desire(wander);
 		} else {
 			
+			// We get the max score according to the MADM method			
 			map<buyers, float> max_buyer_score <- get_max_score(buyers_score);
+			
+			// Now find the target buyer from its location
 			target <- point(max_buyer_score.keys[0]);
 			
 			// log into db the calculated score
