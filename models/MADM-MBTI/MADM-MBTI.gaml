@@ -558,22 +558,22 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		return buyer_score.pairs with_max_of(each.value);
 	}
 	
-	map<buyers, float> calculate_score(list<point> buyers_to_calculate){
+	map<buyers, float> calculate_score(list<point> buyers_to_calculate){		
+		// Calculate score for E-I 
 		map<buyers, float> buyers_e_i_score;
+		buyers_e_i_score <- get_extroversion_introversion_score(buyers_to_calculate);		
 		
-		buyers_e_i_score <- get_extroversion_introversion_score(buyers_to_calculate);
-		
+		// Calculate score for S-N
 		map<buyers, float> buyers_s_n_score;
-		
-		// Calculate score for intuition agents
 		buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
 		
+		// Calculate score for T-F
+		map<buyers, float> buyers_t_f_score;
+		buyers_t_f_score <- get_thinking_feeling_score(possible_buyers);		
+		
+		// Sum all scores
 		map<buyers, float> buyers_score;
-		
-		// Sum scores E-I and S-N		
-		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key]));
-		
-		buyers_score <- get_thinking_feeling_score(possible_buyers);
+		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key] + buyers_t_f_score[each.key]));		
 		
 		return buyers_score;
 	}
