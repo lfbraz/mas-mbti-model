@@ -186,7 +186,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		return list_of_points;
 	}
 	
-	// TODO: change to MADM normalization procedures
+	// TODO: remove after all the scoring methods are done
 	action get_norm(float score, map<buyers, float> buyers_scores, bool order_by_asc <- true){
 		if min(buyers_scores)=max(buyers_scores) {
 			return 1.0 ;
@@ -200,14 +200,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		} 
 	}
 	
-	map<buyers, float> get_distances(list<buyers> buyers_in_my_view){
-		return map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
-	}
-	
-	map<buyers, float> get_distances_norm(list<buyers> buyers_in_my_view){
-		return map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
-	}
-	
 	float get_normalized_values(float value, map<buyers, float> buyers_values, string criteria_type){
 		if criteria_type="cost"{
 			return value>0 ? abs(min(buyers_values) / value) : 1.0;	
@@ -216,75 +208,55 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}
 	}
 	
+	map<buyers, float> get_distances(list<buyers> buyers_in_my_view){
+		return map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
+	}
+	
+	map<buyers, float> get_distances_norm(list<buyers> buyers_in_my_view){
+		return map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
+	}
+	
 	map<buyers, float> get_buyers_size(list<buyers> buyers_in_my_view){
 		return map<buyers, float>(buyers_in_my_view collect (each::each.qty_buyers));		
 	}
 	
-	// TODO: calculate according to MADM procedure
 	action get_extroversion_introversion_score(list list_of_points){
-		map<buyers, float> agents_score;
 		map<buyers, float> score_e_i;
 		
 		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		// When there is a unique agent we can simply consider it as the max score
 		if(length(buyers_in_my_view)=1){
-			agents_score <-  map<buyers, float>(buyers_in_my_view collect (first(each)::1.0));
+			score_e_i <-  map<buyers, float>(buyers_in_my_view collect (first(each)::1.0));
 		}
 		else {			
 		
 			buyers_in_my_view <- reverse (buyers_in_my_view sort_by (each distance_to self));
 				
 			map<buyers, float> buyers_distance_to_me;
-			map<buyers, float> buyers_distance_score;
 			map<buyers, float> buyers_distance_norm;
 			
 			// Get the distance of each buyer to the seller and calculate the inverted norm score
 			buyers_distance_to_me  <- get_distances(buyers_in_my_view); 
-			//write "buyers_distance_to_me: " + buyers_distance_to_me;
-			buyers_distance_score <- buyers_distance_to_me.pairs as_map (each.key::float(get_norm(each.value, buyers_distance_to_me, false)));
-			//write "buyers_distance_score: " + buyers_distance_score;
 			buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));
-			//write "buyers_distance_norm: " + buyers_distance_norm;
 			
-			map<buyers, float> buyers_qty_buyers;
 			map<buyers, float> buyers_size;
-			map<buyers, float> buyers_qty_buyers_score;
 			map<buyers, float> buyers_size_norm;
 			
-			// Get how many people exists in the buyer and calculate the norm score
-			buyers_qty_buyers  <- map<buyers, float>(buyers_in_my_view collect (each::each.qty_buyers));
-			//write "buyers_qty_buyers: " + buyers_qty_buyers;
+			// Get how many people exists in the buyer
 			buyers_size <- get_buyers_size(buyers_in_my_view);
-			//write "buyers_size: " + buyers_size;
-			buyers_qty_buyers_score <- buyers_qty_buyers.pairs as_map (each.key::float(get_norm(each.value, buyers_qty_buyers)));
-			//write "buyers_qty_buyers_score: " + buyers_qty_buyers_score;
 			
 			string criteria_type;
 			
 			// According to the seller personality type the normalization procedure will change (cost or benefit attribute) 
 			criteria_type <- !self.is_extroverted ? "cost" : "benefit";			 
-			buyers_size_norm <- buyers_qty_buyers.pairs as_map (each.key::float(get_normalized_values(each.value, buyers_qty_buyers, criteria_type)));
+			buyers_size_norm <- buyers_size.pairs as_map (each.key::float(get_normalized_values(each.value, buyers_size, criteria_type)));			
 			
-			//write "buyers_size_norm: " + buyers_size_norm;  
-			
-			// Use the right weight depend on the seller personality and calculate the combined score
-			if(!self.is_extroverted){
-				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_intraversion*buyers_qty_buyers_score[each.key]));
-			}else {
-				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_extraversion*buyers_qty_buyers_score[each.key]));
-			}
-				
-				
-				score_e_i <- buyers_distance_norm.pairs as_map (each.key::each.value+(buyers_size_norm[each.key]));
-				write "score_e_i: " + score_e_i;
-			
-			// Calculate the final norm score
-			agents_score <- agents_score.pairs as_map (each.key::float(get_norm(each.value, agents_score)));
-			write "agents_score: " + agents_score;
+			// Calculate SCORE-E-I
+			score_e_i <- buyers_distance_norm.pairs as_map (each.key::each.value+(buyers_size_norm[each.key]));
 			
 			// Log to the database
-			loop buyer over: agents_score.pairs {			
+			loop buyer over: score_e_i.pairs {			
 				// log into db the calculated score
 				do insert (params: PARAMS,
 								into: "TB_SCORE_E_I",
@@ -305,15 +277,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 										  buyers(buyer.key).qty_buyers, 
 										  buyers(buyer.key).name,
 										  int(self.is_extroverted),
-										  buyers_distance_score[buyer.key],
-										  buyers_qty_buyers_score[buyer.key],
+										  buyers_distance_norm[buyer.key],
+										  buyers_size_norm[buyer.key],
 										  buyer.value
-								]);
-								
+								]);								
 								
 			}		
 			
-			return agents_score;	
+			return score_e_i;	
 		}
 	}	
 
