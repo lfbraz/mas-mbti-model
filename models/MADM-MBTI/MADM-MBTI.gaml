@@ -375,7 +375,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		return score_s_n;		
 	}
 	
-	action get_thinking_feeling_score(list list_of_points, map<buyers, float> buyers_score_t_f){
+	action get_thinking_feeling_score(list list_of_points){
 		map<buyers, float> score_t_f;
 		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
@@ -446,7 +446,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		return score_t_f;		
 	}
 	
-	// TODO: calculate according to MADM procedure
 	action get_judging_perceiving_score(list<point> buyers_to_calculate){
 		map<buyers, float> new_buyers_score;
 		new_buyers_score <- calculate_score(possible_buyers);
@@ -529,11 +528,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			
 			do goto target: target;
 			
-			// If is a perceiveing agent the target can change each cycle
-			if(!self.is_judging){
-				do get_judging_perceiving_score(possible_buyers);
-			}			
-			
+			// If is a perceiveing agent it has 80% probabability to recalcute the plan
+			bool must_recalculate_plan;
+			must_recalculate_plan <- !self.is_judging ? flip(0.8) : flip(0.2);			
+			if(must_recalculate_plan){ do get_judging_perceiving_score(possible_buyers); }			
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
 			if (target = location)  {
@@ -575,7 +573,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		// Sum scores E-I and S-N		
 		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::each.value + buyers_s_n_score[each.key]));
 		
-		buyers_score <- get_thinking_feeling_score(possible_buyers, buyers_score);
+		buyers_score <- get_thinking_feeling_score(possible_buyers);
 		
 		return buyers_score;
 	}
