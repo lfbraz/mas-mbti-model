@@ -291,26 +291,25 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	// TODO: calculate according to MADM procedure
 	// TODO: we must add a parameter to simple_clustering_by_distance
 	action get_sensing_intuition_score(list list_of_points){
-		map<buyers, float> agents_score;
 		map<buyers, float> score_s_n;
 		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		// When there is a unique agent we can simply consider it as the max score
 		if(length(buyers_in_my_view)=1){
-			agents_score <-  map<buyers, float>(buyers_in_my_view collect (first(each)::1.0));
+			score_s_n <-  map<buyers, float>(buyers_in_my_view collect (first(each)::1.0));
 		}
 		else {
 		
 			map<buyers, float> buyers_distance_to_me;
-			map<buyers, float> buyers_distance_score;
 			map<buyers, float> buyers_distance_norm;
 				
 			// Get the distance of each buyer to the seller and calculate the inverted norm score
-			buyers_distance_to_me <- get_distances(buyers_in_my_view);			
-			
-			buyers_distance_score <- buyers_distance_to_me.pairs as_map (each.key::float(get_norm(each.value, buyers_distance_to_me, false)));			
+			buyers_distance_to_me <- get_distances(buyers_in_my_view);		
+
+			// Normalize distance as a cost attribute
 			buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));			
 			
+			// Calculate the density using simple_clustering_by_distance technique
 			list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view, 30));
 			list<map<list<buyers>, int>> clusters_density <-list<map<list<buyers>, int>>(clusters collect (each::length(each)));
 			
@@ -331,31 +330,15 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			density_weight <- self.is_sensing ? 0.8 : 0.2; 
 			distance_weight <- 1 - density_weight; 
 			
-			// Get the distance of each buyer to the seller and calculate the inverted norm score
-			map<buyers, float> buyers_density_score;
+			// Normalize density as a benefit attribute
 			map<buyers, float> buyers_density_norm;
-			buyers_density_score <- buyers_density.pairs as_map (each.key:: (max(buyers_density)>1) ? float(get_norm(each.value, buyers_density)) : 1.0);			
 			buyers_density_norm <- buyers_density.pairs as_map (each.key::(max(buyers_density)>1) ? get_normalized_values(each.value, buyers_density, "benefit") : 1.0);
 			
-			// Use the right weight depend on the seller personality and calculate the combined score
-			if(!self.is_sensing){
-				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_intuition*buyers_density_score[each.key]));
-			}else {
-				agents_score <- buyers_distance_score.pairs as_map (each.key::each.value+(weight_sensing*buyers_density_score[each.key]));
-			}
-			
+			// Calculate SCORE-S-N
 			score_s_n <- buyers_distance_norm.pairs as_map (each.key::((each.value*distance_weight)+(buyers_density_norm[each.key]*density_weight)));
 			
-			write "agents_score: " + agents_score;
-			write "score_s_n: " + score_s_n;
-			
-			// Calculate the final norm score
-			agents_score <- agents_score.pairs as_map (each.key::float(get_norm(each.value, agents_score)));
-		
-			float score;
-			  
 			// Log to the database
-			loop buyer over: agents_score.pairs {
+			loop buyer over: score_s_n.pairs {
 				// log into db the calculated score
 				do insert (params: PARAMS,
 							into: "TB_SCORE_S_N",
@@ -374,14 +357,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 									  buyers_density[buyer.key],
 									  buyers_distance_to_me[buyer.key], 
 									  buyers(buyer.key).name,
-									  buyers_distance_score[buyer.key],
-									  buyers_density_score[buyer.key], 
+									  buyers_distance_norm[buyer.key],
+									  buyers_density_norm[buyer.key], 
 									  buyer.value
 									]);		
 			}		
 		}
 		
-		return agents_score;		
+		return score_s_n;		
 	}
 	
 	// TODO: calculate according to MADM procedure
