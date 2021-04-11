@@ -36,7 +36,15 @@ CREATE TABLE TB_TARGET (ID INTEGER PRIMARY KEY AUTOINCREMENT,
 
 
 CREATE TABLE TB_SELLER_PRODUCTIVITY(ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                                    INTERACTION INTEGER,
                                     SELLER_NAME TEXT,
-                                    SELLER_MBTI TEXT,
+                                    SELLER_ORIGINAL_MBTI TEXT,
+                                    SELLER_REAL_MBTI TEXT,
                                     BUYER_TARGET TEXT,
+                                    LOCATION_TARGET TEXT,
+                                    IS_EXTROVERTED INT,
+                                    IS_SENSING INT,
+                                    IS_THINKING INT,
+                                    IS_JUDGING INT,
+                                    NUMBER_OF_VISITED_BUYERS INT,
                                     TIMESTAMP DATETIME DEFAULT CURRENT_TIMESTAMP)
