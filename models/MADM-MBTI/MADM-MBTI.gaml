@@ -11,10 +11,12 @@ global {
 
 	int nbsellers;
 	int nbbuyers;
-	bool turn_on_time;
-	
+	bool turn_off_time;
+	bool turn_off_personality_probability;
+	list<point> visited_target;
+		
 	int steps <- 0;
-	int max_steps <- 1000;
+	int max_steps <- 5;
 	
 	geometry shape <- square(500);
 	map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
@@ -28,7 +30,7 @@ global {
 
 		create sellers number: nbsellers {
 			do init(['E','S','F','P']);
-		}
+		}		
 		
 		create sellers number: nbsellers {
 			do init(['E','S','T','J']);
@@ -53,6 +55,39 @@ global {
 		create sellers number: nbsellers {
 			do init(['E','N','T','P']);
 		}
+		
+		create sellers number: nbsellers {
+			do init(['I','S','F','J']);
+		}
+
+		create sellers number: nbsellers {
+			do init(['I','S','F','P']);
+		}
+		
+		create sellers number: nbsellers {
+			do init(['I','S','T','J']);
+		}
+		
+		create sellers number: nbsellers {
+			do init(['I','S','T','P']);
+		}
+		
+		create sellers number: nbsellers {
+			do init(['I','N','F','J']);
+		}
+		
+		create sellers number: nbsellers {
+			do init(['I','N','F','P']);
+		}
+		
+		create sellers number: nbsellers {
+			do init(['I','N','T','J']);
+		}
+		
+		create sellers number: nbsellers {
+			do init(['I','N','T','P']);
+		}		
+		
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -66,7 +101,7 @@ global {
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	float viewdist_sellers <- 100.0;
-	float viewdist_buyers <- 30.0;
+	float viewdist_buyers <- 50.0;
 	//float speed <- 20.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
@@ -74,7 +109,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	// MBTI variables
 	string my_personality;
 	list my_real_personality;
-	//list<string> my_personality;
+	list<string> my_current_personality;
 	
 	string E_I;
 	bool is_extroverted;
@@ -103,7 +138,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	point target;
 	point new_target;
 
-	list<point> visited_target;
 	list<point> perceived_buyers;
 	
 	list<point> sellers_in_my_view;
@@ -135,7 +169,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		is_thinking <- T_F =  'T' ? flip(0.8) : flip(0.2);
 		is_judging <- J_P = 'J' ? flip(0.8) : flip(0.2);
 		
-		//my_real_personality <- [];
+		my_real_personality <- [];
 		add is_extroverted?"E":"I" to: my_real_personality;
 		add is_sensing?"S":"N" to: my_real_personality;
 		add is_thinking?"T":"F" to: my_real_personality;
@@ -150,7 +184,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		// set my personality
 		my_personality <- string(mbti_personality);
-		
+		my_current_personality <- mbti_personality;
+
 		// clean table
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
@@ -164,9 +199,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		do add_desire(wander);
 	}
 	
-	//reflex get_current_personality{
-	//	do define_personality(self.my_personality);
-	//}
+	// We use the param each cycle to know when to use the define_personality function 
+	reflex get_current_personality{
+		my_current_personality <- self.my_personality;
+		if(turn_off_personality_probability) {do define_personality(my_current_personality);}
+	}
 	
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:buyers in: viewdist_buyers*2{
@@ -184,7 +221,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//}
 	
 	// TODO: consider teamates
-	perceive target:sellers in: viewdist_buyers*2{
+	perceive target:sellers{
 		// We must validate that only our teammates would be considered (also remove the seller itself)
 		if(myself.name != self.name){
 			focus id:"location_seller" var:location;
@@ -327,9 +364,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			map<buyers, float> buyers_distance_norm;
 				
 			// Get the distance of each buyer to the seller and calculate the inverted norm score
-			buyers_distance_to_me <- get_distances(buyers_in_my_view);		
-
-			// Normalize distance as a cost attribute
+			buyers_distance_to_me <- get_distances(buyers_in_my_view);
 			buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));			
 			
 			// Calculate the density using simple_clustering_by_distance technique
@@ -401,8 +436,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				
 		// Get the distance of each buyer to the seller and calculate the inverted norm score
 		buyers_distance_to_me <- get_distances(buyers_in_my_view);		
-
-		// Normalize distance as a cost attribute
 		buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));
 		
 		float inc_num_sellers_close_to_buyer <- 0.0;
@@ -557,11 +590,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 					number_of_visited_buyers <- number_of_visited_buyers + 1;
 					// persist into the db the seller`s action
 					do persist_seller_action(current_buyer, target);	
-					do add_belief(met_buyer);			 	
+					do add_belief(met_buyer);
+					add target to: visited_target;
 				}
 				
-				do remove_belief(new_predicate("location_buyer", ["location_value"::target]));
-				add target to: visited_target;
+				do remove_belief(new_predicate("location_buyer", ["location_value"::target]));				
 				
 				target <- nil;				
 				do remove_intention(sell_item, true);
@@ -571,38 +604,38 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 
 	action get_max_score(map<buyers, float> buyer_score){
 		return buyer_score.pairs with_max_of(each.value);
-	}
+	}	
 	
 	map<buyers, float> calculate_score(list<point> buyers_to_calculate){
-		start_time <- turn_on_time ? date("now") : #nan;
+		start_time <- turn_off_time ? #nan : machine_time;
 		// Calculate score for E-I 
 		map<buyers, float> buyers_e_i_score;
 		buyers_e_i_score <- get_extroversion_introversion_score(buyers_to_calculate);		
-		end_time <- turn_on_time ? date("now") : #nan;
-		if(turn_on_time) {write "get_extroversion_introversion_score: " + milliseconds_between(start_time, end_time);}
+		end_time <- turn_off_time ? #nan : machine_time;
+		if(!turn_off_time) {write "get_extroversion_introversion_score: " + (end_time-start_time);}
 		
-		start_time <- turn_on_time ? date("now") : #nan;
+		start_time <- turn_off_time ? #nan : machine_time;
 		// Calculate score for S-N
 		map<buyers, float> buyers_s_n_score;
 		buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
-		end_time <- turn_on_time ? date("now") : #nan;
-		if(turn_on_time) {write "get_sensing_intuition_score: " + milliseconds_between(start_time, end_time);}
+		end_time <- turn_off_time ? #nan : machine_time;
+		if(!turn_off_time) {write "get_sensing_intuition_score: " + (end_time-start_time);}
 		
-		start_time <- turn_on_time ? date("now") : #nan;
+		start_time <- turn_off_time ? #nan : machine_time;
 		// Calculate score for T-F
 		map<buyers, float> buyers_t_f_score;
 		buyers_t_f_score <- get_thinking_feeling_score(possible_buyers);		
-		end_time <- turn_on_time ? date("now") : #nan;
-		if(turn_on_time) {write "get_thinking_feeling_score: " + milliseconds_between(start_time, end_time);}
+		end_time <- turn_off_time ? #nan : machine_time;
+		if(!turn_off_time) {write "get_thinking_feeling_score: " + (end_time-start_time);}
 		
-		start_time <- turn_on_time ? date("now") : #nan;
+		start_time <- turn_off_time ? #nan : machine_time;
 		// Sum all scores
 		map<buyers, float> buyers_score;
 		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::((each.value*weight_e_i) + 
 																					  (buyers_s_n_score[each.key]*weight_s_n) + 
 																					  (buyers_t_f_score[each.key]*weight_t_f))));
-		end_time <- turn_on_time ? date("now") : #nan;
-		if(turn_on_time) {write "sum_scores: " + milliseconds_between(start_time, end_time);}
+		end_time <- turn_off_time ? #nan : machine_time;
+		if(!turn_off_time) {write "sum_all_scores: " + (end_time-start_time);}
 		
 		return buyers_score;
 	}
@@ -702,13 +735,14 @@ grid grille width: 100 height: 100 neighbors:4 {
 	rgb color <- #white;
 }
 
-experiment MBTI type: gui {
+experiment MBTI type: gui benchmark: true{
 	float minimum_cycle_duration <- 0.00;
 	float seed <- 2014.0; 
 	
 	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1 among: [1,3,5,10,15,20];
 	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 100 among: [10,50,100,200,400,500];
-	parameter "Turn on duration" category:"General" var: turn_on_time <- false;
+	parameter "Disable time track" category:"General" var: turn_off_time <- false;
+	parameter "Disable personality change" category:"General" var: turn_off_personality_probability <- false;
 	
 	/** Insert here the definition of the input and output of the model */
 	output {
