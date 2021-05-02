@@ -16,10 +16,29 @@ global {
 	list<point> visited_target;
 		
 	int steps <- 0;
-	int max_steps <- 5;
+	int max_steps <- 500;
+	
+	int num_visited_target_ENFJ <- 0;
+	int num_visited_target_ENFP <- 0;
+	int num_visited_target_ENTJ <- 0;
+	int num_visited_target_ENTP <- 0;
+	int num_visited_target_ESFJ <- 0;
+	int num_visited_target_ESFP <- 0;
+	int num_visited_target_ESTJ <- 0;
+	int num_visited_target_ESTP <- 0;
+	int num_visited_target_INFJ <- 0;
+	int num_visited_target_INFP <- 0;
+	int num_visited_target_INTJ <- 0;
+	int num_visited_target_INTP <- 0;
+	int num_visited_target_ISFJ <- 0;
+	int num_visited_target_ISFP <- 0;
+	int num_visited_target_ISTJ <- 0;
+	int num_visited_target_ISTP <- 0;
 	
 	geometry shape <- square(500);
-	map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
+	//map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
+	//map<string, string> PARAMS <- ['host'::"./SQLExpress", 'dbtype'::'sqlserver', 'database'::'TESTEDB', 'port'::'1433', 'user'::'gama_user', 'passwd'::'gama#123'];
+	map<string, string> PARAMS <- ['host'::'localhost', 'dbtype'::'Postgres', 'database'::'gama_data', 'port'::'5432', 'user'::'postgres_user', 'passwd'::'gama#123'];
 	
 	init {
 		create buyers number: nbbuyers;
@@ -123,8 +142,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	string J_P;
 	bool is_judging;
 	
-	bool already_visited_cluster <- false;
-	
 	rgb color;
 	
 	//to simplify the writting of the agent behavior, we define as variables 4 desires for the agents
@@ -177,23 +194,46 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		color <- #green;		
 	}
+
+	action define_personality_without_prob(list<string> mbti_personality){
+		E_I <- mbti_personality at 0;
+		S_N <- mbti_personality at 1;
+		T_F <- mbti_personality at 2;
+		J_P <- mbti_personality at 3;
+		
+		// An seller agent has 80% of probabability to keep its original MBTI personality
+		is_extroverted<- E_I = 'E' ? true : false;
+		is_sensing <- S_N =  'S' ? true : false;
+		is_thinking <- T_F =  'T' ? true : false;
+		is_judging <- J_P = 'J' ? true : false;
+		
+		my_real_personality <- [];
+		add is_extroverted?"E":"I" to: my_real_personality;
+		add is_sensing?"S":"N" to: my_real_personality;
+		add is_thinking?"T":"F" to: my_real_personality;
+		add is_judging?"J":"P" to: my_real_personality;
+		
+		color <- #green;		
+	}
+	
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti_personality)
 	{		
-		
+	    // write "Connection to POSTGRES is " +  testConnection(PARAMS);
 		// set my personality
 		my_personality <- string(mbti_personality);
 		my_current_personality <- mbti_personality;
 
 		// clean table
-		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
-		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
-		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
-		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
+		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
+		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
+		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
+		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
 		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY";
 		
-		do define_personality(mbti_personality);
+		//do define_personality(mbti_personality);
+		do define_personality_without_prob(mbti_personality);
 
 		// Begin to wander
 		do add_desire(wander);
@@ -208,7 +248,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:buyers in: viewdist_buyers*2{
 		// Seller only focus on buyer if it wasn`t visited yet
-		if(!visited){
+		if(!self.visited){
 			focus id:"location_buyer" var:location;
 			ask myself {do remove_intention(wander, false);	}	
 		}		
@@ -317,6 +357,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			// Calculate SCORE-E-I
 			score_e_i <- buyers_distance_norm.pairs as_map (each.key::each.value+(buyers_size_norm[each.key]));
 			
+			/* 
 			// Log to the database
 			loop buyer over: score_e_i.pairs {			
 				// log into db the calculated score
@@ -345,6 +386,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 								]);								
 								
 			}		
+			*/
 			
 			return score_e_i;	
 		}
@@ -395,6 +437,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			// Calculate SCORE-S-N
 			score_s_n <- buyers_distance_norm.pairs as_map (each.key::((each.value*distance_weight)+(buyers_density_norm[each.key]*density_weight)));
 			
+			/*	
 			// Log to the database
 			loop buyer over: score_s_n.pairs {
 				// log into db the calculated score
@@ -418,8 +461,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 									  buyers_distance_norm[buyer.key],
 									  buyers_density_norm[buyer.key], 
 									  buyer.value
-									]);		
-			}		
+									]);	
+			}
+			*/		
 		}
 		
 		return score_s_n;		
@@ -465,6 +509,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		// Calculate SCORE-T-F
 		score_t_f <- buyers_distance_norm.pairs as_map (each.key::((each.value*distance_weight)+(num_sellers_close_to_buyer_norm[each.key]*sellers_close_to_buyer_weight)));
 		
+		/*
 		// Log to the database
 			loop buyer over: score_t_f.pairs {
 				// log into db the calculated score
@@ -490,6 +535,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 									  buyer.value
 									]);		
 			}
+			*/
 		
 		return score_t_f;		
 	}
@@ -506,17 +552,21 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				// If the target has changed seller must move to this new direction
 				target <- new_target;			
 				do goto target: target;
-							
+				
+				/* 			
 				// log into db the calculated score
 				do insert (params: PARAMS,
 							into: "TB_TARGET",
 							columns: ["INTERACTION", "TYPE", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
 							values:  [steps, "NEW TARGET (J-P)", self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);		
+				*/
 			}	
 		}
 	}
 	
-	action persist_seller_action(buyers buyer_target, point location_target){
+	action persist_seller_action(buyers buyer_target, point location_target){		
+		
+		
 		// log into db the calculated score
 		do insert (params: PARAMS,
 					into: "TB_SELLER_PRODUCTIVITY",
@@ -532,7 +582,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 							  "IS_JUDGING",
 							  "NUMBER_OF_VISITED_BUYERS"
 							  ],
-					values:  [steps , 
+					values:  [steps, 
 							  self.name, 
 							  self.my_personality, 
 							  string(self.my_real_personality), 
@@ -585,10 +635,62 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				got_buyer <- true;
 				
 				buyers current_buyer <- buyers first_with (target = each.location);
-				if current_buyer != nil {
+				if current_buyer != nil and !current_buyer.visited{
 					ask current_buyer {visited <- true;}
 					number_of_visited_buyers <- number_of_visited_buyers + 1;
 					// persist into the db the seller`s action
+					
+					switch string(self.my_real_personality) {
+						match "['E','N','F','J']" {
+							num_visited_target_ENFJ <- num_visited_target_ENFJ+1;
+						}
+						match "['E','N','F','P']" {
+							num_visited_target_ENFP <- num_visited_target_ENFP+1;
+						}
+						match "['E','N','T','J']" {
+							num_visited_target_ENTJ <- num_visited_target_ENTJ+1;
+						}
+						match "['E','N','T','P']" {
+							num_visited_target_ENTP <- num_visited_target_ENTP+1;							
+						}
+						match "['E','S','F','J']" {
+							num_visited_target_ESFJ <- num_visited_target_ESFJ+1;
+						}
+						match "['E','S','F','P']" {
+							num_visited_target_ESFP <- num_visited_target_ESFP+1;
+						}
+						match "['E','S','T','J']" {
+							num_visited_target_ESTJ <- num_visited_target_ESTJ+1;
+						}
+						match "['E','S','T','P']" {
+							num_visited_target_ESTP <- num_visited_target_ESTP+1;
+						}
+						match "['I','N','F','J']" {
+							num_visited_target_INFJ <- num_visited_target_INFJ+1;
+						}
+						match "['I','N','F','P']" {
+							num_visited_target_INFP <- num_visited_target_INFP+1;
+						}
+						match "['I','N','T','J']" {
+							num_visited_target_INTJ <- num_visited_target_INTJ+1;
+						}
+						match "['I','N','T','P']" {
+							num_visited_target_INTP <- num_visited_target_INTP+1;
+						}
+						match "['I','S','F','J']" {
+							num_visited_target_ISFJ <- num_visited_target_ISFJ+1;
+						}
+						match "['I','S','F','P']" {
+							num_visited_target_ISFP <- num_visited_target_ISFP+1;
+						}
+						match "['I','S','T','J']" {
+							num_visited_target_ISTJ <- num_visited_target_ISTJ+1;
+						}
+						match "['I','S','T','P']" {
+							num_visited_target_ISTP <- num_visited_target_ISTP+1;
+						} 
+					}
+					
 					do persist_seller_action(current_buyer, target);	
 					do add_belief(met_buyer);
 					add target to: visited_target;
@@ -598,7 +700,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				
 				target <- nil;				
 				do remove_intention(sell_item, true);
-			}
+			} 
 		}
 	}
 
@@ -665,14 +767,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			target <- point(max_buyer_score.keys[0]);
 			
 			// log into db the calculated score
-			do insert (params: PARAMS,
-						into: "TB_TARGET",
-						columns: ["INTERACTION", "TYPE", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
-						values:  [steps, "ORIGINAL", self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);
-						
-			if(!already_visited_cluster) {
-				already_visited_cluster <- true;
-			} 			
+			//do insert (params: PARAMS,
+			//			into: "TB_TARGET",
+			//			columns: ["INTERACTION", "TYPE", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
+			//			values:  [steps, "ORIGINAL", self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);						
 		}
 		do remove_intention(define_buyer_target, true);
 	}
@@ -700,27 +798,13 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 }
 
 
-species buyers skills: [moving] control: simple_bdi {	
+species buyers skills: [moving] schedules: []  {	
 	rgb color <- #blue;
 	float speed <- 3.0;
 	bool visited <- false;
 	int qty_buyers <- rnd (1, 30);
 	
-	image_file buyer_icon <- image_file("../../includes/buyer.png");
-	
-	predicate wander <- new_predicate("wander");
-	
-	//at the creation of the agent, we add the desire to patrol (wander)
-	init
-	{		
-		// do add_desire(wander);
-	}
-	
-	// plan that has for goal to fulfill the wander desire	
-	plan letsWander intention:wander 
-	{
-		do wander amplitude: 60.0 speed: speed;
-	}
+	image_file buyer_icon <- image_file("../../includes/buyer.png");	
 	
 	aspect default {  
 	  draw rectangle(30, 15) color: #orange at:{location.x,location.y-20};
@@ -731,17 +815,23 @@ species buyers skills: [moving] control: simple_bdi {
 	}
 }
 
-grid grille width: 100 height: 100 neighbors:4 {
+grid grille width: 100 height: 100 {
 	rgb color <- #white;
 }
 
-experiment MBTI type: gui benchmark: true{
+experiment MBTI type: gui benchmark: false {
 	float minimum_cycle_duration <- 0.00;
+	
+	// Random Seed Control
 	float seed <- 2014.0; 
+	//float seed <- 2015.0;
+	//float seed <- 2016.0;
+	//float seed <- 2017.0;
+	//float seed <- 2018.0;
 	
 	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1 among: [1,3,5,10,15,20];
 	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 100 among: [10,50,100,200,400,500];
-	parameter "Disable time track" category:"General" var: turn_off_time <- false;
+	parameter "Disable time track" category:"General" var: turn_off_time <- true;
 	parameter "Disable personality change" category:"General" var: turn_off_personality_probability <- false;
 	
 	/** Insert here the definition of the input and output of the model */
@@ -750,7 +840,28 @@ experiment MBTI type: gui benchmark: true{
 			grid grille lines: #darkgreen;
 			species sellers aspect:default;
 			species buyers aspect:default;
-		}	
+		}
+		
+		display "sellers_performance" type: java2D{
+        	chart "Seller's performance" type: series y_tick_unit: 1 x_label: 'Cycles' label_font: font('Serif', 14 #plain) y_label: 'Number of visited buyers' {        		
+        	data "ENFJ" value: num_visited_target_ENFJ style: spline;
+        	data "ENFP" value: num_visited_target_ENFP style: spline;
+        	data "ENTJ" value: num_visited_target_ENTJ style: spline;
+        	data "ENTP" value: num_visited_target_ENTP style: spline;
+        	data "ESFJ" value: num_visited_target_ESFJ style: spline;
+        	data "ESFP" value: num_visited_target_ESFP style: spline;
+        	data "ESTJ" value: num_visited_target_ESTJ style: spline;
+        	data "ESTP" value: num_visited_target_ESTP style: spline;
+        	data "INFJ" value: num_visited_target_INFJ style: spline;
+        	data "INFP" value: num_visited_target_INFP style: spline;
+        	data "INTJ" value: num_visited_target_INTJ style: spline;
+        	data "INTP" value: num_visited_target_INTP style: spline;
+        	data "ISFJ" value: num_visited_target_ISFJ style: spline;
+        	data "ISFP" value: num_visited_target_ISFP style: spline;
+        	data "ISTJ" value: num_visited_target_ISTJ style: spline;
+        	data "ISTP" value: num_visited_target_ISTP style: spline;
+        	}
+    	}	
 	}
 }
 
