@@ -9,6 +9,9 @@ model MBTI
 
 global {
 
+
+	int iteration_number <- 1;
+
 	int nbsellers;
 	int nbbuyers;
 	bool turn_off_time;
@@ -34,17 +37,19 @@ global {
 	int num_visited_target_ISFP <- 0;
 	int num_visited_target_ISTJ <- 0;
 	int num_visited_target_ISTP <- 0;
-	
+
 	geometry shape <- square(500);
 	//map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
 	//map<string, string> PARAMS <- ['host'::"./SQLExpress", 'dbtype'::'sqlserver', 'database'::'TESTEDB', 'port'::'1433', 'user'::'gama_user', 'passwd'::'gama#123'];
 	map<string, string> PARAMS <- ['host'::'localhost', 'dbtype'::'Postgres', 'database'::'gama_data', 'port'::'5432', 'user'::'postgres_user', 'passwd'::'gama#123'];
 	
 	init {
+		write "new simulation created: " + name;
+		write "nbsellers: " + nbbuyers;
 		create buyers number: nbbuyers;
 
 		create sellers number: nbsellers {
-			do init(['E','S','F','J']);
+			do init(['E','S','F','J'] );
 		}
 
 		create sellers number: nbsellers {
@@ -105,7 +110,7 @@ global {
 		
 		create sellers number: nbsellers {
 			do init(['I','N','T','P']);
-		}		
+		}
 		
 	}
 	
@@ -115,6 +120,7 @@ global {
 	
 	reflex count{
 		steps  <- steps + 1;
+		write steps; 
 	}
 }
 
@@ -173,7 +179,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	date end_time;
 	
 	int number_of_visited_buyers <- 0;
-		
+	
+	string experiment_name;
+	
 	action define_personality(list<string> mbti_personality){
 		E_I <- mbti_personality at 0;
 		S_N <- mbti_personality at 1;
@@ -192,7 +200,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		add is_thinking?"T":"F" to: my_real_personality;
 		add is_judging?"J":"P" to: my_real_personality;
 		
-		color <- #green;		
+		color <- #purple;		
 	}
 
 	action define_personality_without_prob(list<string> mbti_personality){
@@ -213,14 +221,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		add is_thinking?"T":"F" to: my_real_personality;
 		add is_judging?"J":"P" to: my_real_personality;
 		
-		color <- #green;		
+		color <- #purple;		
 	}
 	
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti_personality)
 	{		
-	    // write "Connection to POSTGRES is " +  testConnection(PARAMS);
+        // write "Connection to POSTGRES is " +  testConnection(PARAMS);
 		// set my personality
 		my_personality <- string(mbti_personality);
 		my_current_personality <- mbti_personality;
@@ -230,7 +238,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
-		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY";
+		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name];
 		
 		//do define_personality(mbti_personality);
 		do define_personality_without_prob(mbti_personality);
@@ -565,8 +573,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	action persist_seller_action(buyers buyer_target, point location_target){		
-		
-		
+		write "persist_seller_action: " + world.name;
 		// log into db the calculated score
 		do insert (params: PARAMS,
 					into: "TB_SELLER_PRODUCTIVITY",
@@ -580,7 +587,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 							  "IS_SENSING", 
 							  "IS_THINKING", 
 							  "IS_JUDGING",
-							  "NUMBER_OF_VISITED_BUYERS"
+							  "NUMBER_OF_VISITED_BUYERS",
+							  "EXPERIMENT_NAME"
 							  ],
 					values:  [steps, 
 							  self.name, 
@@ -592,7 +600,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 							  int(is_sensing), 
 							  int(is_thinking), 
 							  int(is_judging),
-							  self.number_of_visited_buyers
+							  self.number_of_visited_buyers,
+							  world.name
 					]);
 	}
 	  
@@ -782,7 +791,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	  // enable view distance
 	  //draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
 
-	  //if(is_extroverted){draw ("MBTI:E" ) color:#black size:4;}
+	  draw (string(self.my_real_personality)) color:#black size:4 font: #bold;
+	  //draw ( replace_regex(string(self.my_real_personality), "\W", "")   ) color:#black size:4;
 	  
 	  //draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
 	  //draw ("Velocidade:" + speed) color:#black size:4 at:{location.x,location.y+2*4}; 
@@ -807,8 +817,8 @@ species buyers skills: [moving] schedules: []  {
 	image_file buyer_icon <- image_file("../../includes/buyer.png");	
 	
 	aspect default {  
-	  draw rectangle(30, 15) color: #orange at:{location.x,location.y-20};
-	  draw (string(self.name)) color:#black size:4 at:{location.x-10,location.y-18};
+	  draw rectangle(37, 18) color: #orange at:{location.x,location.y-20};
+	  draw (string(self.name)) color:#black size:4 at:{location.x-14,location.y-18};
 	  draw circle(5) color: visited? #green : #blue  at:{location.x,location.y+20};
 	  draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; 
 	  draw buyer_icon size: 40;
@@ -863,5 +873,22 @@ experiment MBTI type: gui benchmark: false {
         	}
     	}	
 	}
+}
+
+
+experiment Batch_MBTI type:batch repeat: 2 keep_seed: false {
+	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1;
+	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 100;
+	parameter "Disable time track" category:"General" var: turn_off_time <- true;
+	parameter "Disable personality change" category:"General" var: turn_off_personality_probability <- false;
+
+	output {
+		display map {
+			grid grille lines: #darkgreen;
+			species sellers aspect:default;
+			species buyers aspect:default;
+		}		
+	}
+	
 }
 
