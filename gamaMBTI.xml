@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Experiment_plan>
+ <Simulation id="2" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MAS MBTI Recruitment\models\MADM-MBTI\MADM-MBTI.gaml" finalStep="500"
+ experiment="Batch_MBTI">
+  <Parameters>
+    <Parameter name="Number of Sellers" type="INT" value="1" />
+    <Parameter name="Number of Buyers" type="INT" value="100" />
+  </Parameters>  
+ </Simulation>
+</Experiment_plan>
