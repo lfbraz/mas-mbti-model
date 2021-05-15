@@ -19,7 +19,7 @@ global {
 	list<point> visited_target;
 		
 	int steps <- 0;
-	int max_steps <- 500;
+	int max_steps <- 5000; // CHANGED
 	
 	int num_visited_target_ENFJ <- 0;
 	int num_visited_target_ENFP <- 0;
@@ -118,12 +118,12 @@ global {
 	}
 	
 	reflex count{
+		write "Performing step: " + steps;
 		steps  <- steps + 1;
 	}
 }
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
-	float viewdist_sellers <- 100.0;
 	float viewdist_buyers <- 50.0;
 	//float speed <- 20.0;
 	int count_people_around <- 0 ;
@@ -237,7 +237,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
-		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name];
+		 do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name]; // CHANGED
+		//do executeUpdate params: PARAMS updateComm: "TRUNCATE TABLE TB_SELLER_PRODUCTIVITY"; 
 		
 		//do define_personality(mbti_personality);
 		do define_personality_without_prob(mbti_personality);
@@ -253,7 +254,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
-	perceive target:buyers in: viewdist_buyers*2{
+	perceive target:buyers in: viewdist_buyers{
 		// Seller only focus on buyer if it wasn`t visited yet
 		if(!self.visited){
 			focus id:"location_buyer" var:location;
@@ -268,7 +269,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//}
 	
 	// TODO: consider teamates
-	perceive target:sellers{
+	perceive target:sellers in: viewdist_buyers{
 		// We must validate that only our teammates would be considered (also remove the seller itself)
 		if(myself.name != self.name){
 			focus id:"location_seller" var:location;
@@ -700,7 +701,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 						} 
 					}
 					
-					do persist_seller_action(current_buyer, target);	
+					// do persist_seller_action(current_buyer, target);	
 					do add_belief(met_buyer);
 					add target to: visited_target;
 				}
@@ -786,13 +787,15 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	aspect default {	  
 	  	
-	  draw circle(15) color: color;
+	  draw circle(5) color: color; // CHANGED
 	  
 	  // enable view distance
-	  //draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
-
-	  string regex <- '\\W';
-	  draw (replace_regex(string(self.my_real_personality), regex, "")) color:#white size:4 at:{location.x-8,location.y};
+	  draw circle(viewdist_buyers) color:rgb(#white,0.5) border: #red;
+	  
+	  // CHANGED
+	  // string regex <- '\\W';
+	  // draw (replace_regex(string(self.my_real_personality), regex, "")) color:#white size:4 at:{location.x-8,location.y};
+	  
 	  //draw ( replace_regex(string(self.my_real_personality), "\W", "")   ) color:#black size:4;
 	  
 	  //draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
@@ -815,26 +818,28 @@ species buyers skills: [moving] schedules: []  {
 	bool visited <- false;
 	int qty_buyers <- rnd (1, 30);
 	
-	image_file buyer_icon <- image_file("../../includes/buyer.png");	
+	// image_file buyer_icon <- image_file("../../includes/buyer.png"); // CHANGED	
 	
 	aspect default {  
-	  draw rectangle(37, 18) color: #orange at:{location.x,location.y-20};
-	  // draw (string(self.name)) color:#black size:4 at:{location.x-14,location.y-18};
+	  draw rectangle(1, 1) color: visited? #green : #orange at:{location.x,location.y};
+	  // draw rectangle(37, 18) color: #orange at:{location.x,location.y-20}; // CHANGED
+	  // draw (string(self.name)) color:#black size:4 at:{location.x-14,location.y-18}; // CHANGED
 	  
-	  draw (string(self.name)) color:#black size:4 at:{location.x-14,location.y-18};
+	  //draw (string(self.name)) color:#black size:4 at:{location.x-14,location.y-18};
 	  
-	  draw circle(5) color: visited? #green : #blue  at:{location.x,location.y+20};
-	  draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; 
-	  draw buyer_icon size: 40;
+	  // draw circle(5) color: visited? #green : #blue  at:{location.x,location.y+20}; // CHANGED
+	  // draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; // CHANGED 
+	  //draw buyer_icon size: 40; // CHANGED
 	}
 }
 
-grid grille width: 100 height: 100 {
+// CHANGED
+grid grille width: 160 height: 160 {
 	rgb color <- #white;
 }
 
 
-experiment MBTI type: gui benchmark: false {
+experiment MBTI type: gui benchmark: false  {
 	float minimum_cycle_duration <- 0.00;
 	
 	// Random Seed Control
@@ -845,9 +850,13 @@ experiment MBTI type: gui benchmark: false {
 	//float seed <- 2018.0;
 	
 	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1 among: [1,3,5,10,15,20];
-	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 100 among: [10,50,100,200,400,500];
+	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 6400 among: [10,50,100,200,400,500, 1280, 6400, 24320]; // CHANGED
 	parameter "Disable time track" category:"General" var: turn_off_time <- true;
 	parameter "Disable personality change" category:"General" var: turn_off_personality_probability <- false;
+	
+	reflex t when: every(10#cycle) {
+		do compact_memory;
+	}
 	
 	/** Insert here the definition of the input and output of the model */
 	output {
@@ -856,7 +865,7 @@ experiment MBTI type: gui benchmark: false {
 			species sellers aspect:default;
 			species buyers aspect:default;
 		}
-		
+	/**	
 		display "sellers_performance" type: java2D{
         	chart "Seller's performance" type: series y_tick_unit: 1 x_label: 'Cycles' label_font: font('Serif', 14 #plain) y_label: 'Number of visited buyers' {        		
         	data "ENFJ" value: num_visited_target_ENFJ style: spline;
@@ -876,14 +885,14 @@ experiment MBTI type: gui benchmark: false {
         	data "ISTJ" value: num_visited_target_ISTJ style: spline;
         	data "ISTP" value: num_visited_target_ISTP style: spline;
         	}
-    	}	
+    	} */	
 	}
 }
 
 
-experiment Batch_MBTI type:batch repeat: 1000 keep_seed: false {
+experiment Batch_MBTI type:batch repeat: 100 keep_seed: false {
 	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1;
-	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 100;
+	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 1280;
 	parameter "Disable time track" category:"General" var: turn_off_time <- true;
 	parameter "Disable personality change" category:"General" var: turn_off_personality_probability <- false;
 
