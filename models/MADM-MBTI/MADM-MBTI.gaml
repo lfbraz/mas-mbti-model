@@ -45,12 +45,15 @@ global {
 	
 	init {
 		write "new simulation created: " + name;
+		
 		create buyers number: nbbuyers;
-
+		write "Buyers: " + nbbuyers;
+		
+		 
 		create sellers number: nbsellers {
 			do init(['E','S','F','J'] );
 		}
-
+		
 		create sellers number: nbsellers {
 			do init(['E','S','F','P']);
 		}		
@@ -110,7 +113,7 @@ global {
 		create sellers number: nbsellers {
 			do init(['I','N','T','P']);
 		}
-		
+			
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -230,18 +233,20 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti_personality)
 	{		
+        
         // write PARAMS_SQL;
         // write "Connection to SQL is " +  testConnection(PARAMS_SQL);
 		// set my personality
 		my_personality <- string(mbti_personality);
 		my_current_personality <- mbti_personality;
-
+		
 		// clean table
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
 		 do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name]; // CHANGED
+		
 		//do executeUpdate params: PARAMS updateComm: "TRUNCATE TABLE TB_SELLER_PRODUCTIVITY"; 
 		
 		//do define_personality(mbti_personality);
@@ -253,7 +258,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	// We use the param each cycle to know when to use the define_personality function 
 	reflex get_current_personality{
-		my_current_personality <- self.my_personality;
+		my_current_personality <- list(self.my_personality);
 		if(turn_off_personality_probability) {do define_personality(my_current_personality);}
 	}
 	
@@ -732,35 +737,27 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}	
 	
 	map<buyers, float> calculate_score(list<point> buyers_to_calculate){
-		start_time <- turn_off_time ? #nan : machine_time;
 		do get_buyers_in_my_view(buyers_to_calculate);
 		// Calculate score for E-I 
 		map<buyers, float> buyers_e_i_score;
 		buyers_e_i_score <- get_extroversion_introversion_score(buyers_to_calculate);		
-		end_time <- turn_off_time ? #nan : machine_time;
 		if(!turn_off_time) {write "get_extroversion_introversion_score: " + (end_time-start_time);}
 		
-		start_time <- turn_off_time ? #nan : machine_time;
 		// Calculate score for S-N
 		map<buyers, float> buyers_s_n_score;
 		buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
-		end_time <- turn_off_time ? #nan : machine_time;
 		if(!turn_off_time) {write "get_sensing_intuition_score: " + (end_time-start_time);}
 		
-		start_time <- turn_off_time ? #nan : machine_time;
 		// Calculate score for T-F
 		map<buyers, float> buyers_t_f_score;
 		buyers_t_f_score <- get_thinking_feeling_score(possible_buyers);		
-		end_time <- turn_off_time ? #nan : machine_time;
 		if(!turn_off_time) {write "get_thinking_feeling_score: " + (end_time-start_time);}
 		
-		start_time <- turn_off_time ? #nan : machine_time;
 		// Sum all scores
 		map<buyers, float> buyers_score;
 		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::((each.value*weight_e_i) + 
 																					  (buyers_s_n_score[each.key]*weight_s_n) + 
 																					  (buyers_t_f_score[each.key]*weight_t_f))));
-		end_time <- turn_off_time ? #nan : machine_time;
 		if(!turn_off_time) {write "sum_all_scores: " + (end_time-start_time);}
 		
 		return buyers_score;
@@ -801,16 +798,12 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	aspect default {	  
 	  	
-	  draw circle(5) color: color; // CHANGED
+	  draw circle(10) color: color;
 	  
 	  // enable view distance
-	  draw circle(viewdist_buyers) color:rgb(#white,0.5) border: #red;
-	  
-	  // CHANGED
-	  // string regex <- '\\W';
-	  // draw (replace_regex(string(self.my_real_personality), regex, "")) color:#white size:4 at:{location.x-8,location.y};
-	  
-	  //draw ( replace_regex(string(self.my_real_personality), "\W", "")   ) color:#black size:4;
+	  //draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
+
+	  //if(is_extroverted){draw ("MBTI:E" ) color:#black size:4;}
 	  
 	  //draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
 	  //draw ("Velocidade:" + speed) color:#black size:4 at:{location.x,location.y+2*4}; 
@@ -826,24 +819,22 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 }
 
 
+	
+
 species buyers skills: [moving] schedules: []  {	
 	rgb color <- #blue;
 	float speed <- 3.0;
 	bool visited <- false;
 	int qty_buyers <- rnd (1, 30);
 	
-	// image_file buyer_icon <- image_file("../../includes/buyer.png"); // CHANGED	
+	//image_file buyer_icon <- image_file("../../includes/buyer.png");	
 	
 	aspect default {  
-	  draw rectangle(1, 1) color: visited? #green : #orange at:{location.x,location.y};
-	  // draw rectangle(37, 18) color: #orange at:{location.x,location.y-20}; // CHANGED
-	  // draw (string(self.name)) color:#black size:4 at:{location.x-14,location.y-18}; // CHANGED
-	  
-	  //draw (string(self.name)) color:#black size:4 at:{location.x-14,location.y-18};
-	  
-	  // draw circle(5) color: visited? #green : #blue  at:{location.x,location.y+20}; // CHANGED
-	  // draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; // CHANGED 
-	  //draw buyer_icon size: 40; // CHANGED
+	  //draw rectangle(30, 15) color: #orange at:{location.x,location.y-20};
+	  //draw (string(self.name)) color:#black size:4 at:{location.x-10,location.y-18};
+	  draw circle(5) color: visited? #green : #blue  at:{location.x,location.y+20};
+	  //draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; 
+	  //draw buyer_icon size: 40;
 	}
 }
 
@@ -864,13 +855,13 @@ experiment MBTI type: gui benchmark: false  {
 	//float seed <- 2018.0;
 	
 	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1 among: [1,3,5,10,15,20];
-	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 1280 among: [10,50,100,200,400,500, 1280, 6400, 24320]; // CHANGED
+	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 50 among: [10,50,100,200,400,500, 1280, 6400, 24320]; // CHANGED
 	parameter "Disable time track" category:"General" var: turn_off_time <- true;
 	parameter "Disable personality change" category:"General" var: turn_off_personality_probability <- false;
 	
-	reflex t when: every(10#cycle) {
-		do compact_memory;
-	}
+	//reflex t when: every(10#cycle) {
+	//	do compact_memory;
+	//}
 	
 	/** Insert here the definition of the input and output of the model */
 	output {
@@ -879,7 +870,8 @@ experiment MBTI type: gui benchmark: false  {
 			species sellers aspect:default;
 			species buyers aspect:default;
 		}
-	/**	
+		
+		/** 
 		display "sellers_performance" type: java2D{
         	chart "Seller's performance" type: series y_tick_unit: 1 x_label: 'Cycles' label_font: font('Serif', 14 #plain) y_label: 'Number of visited buyers' {        		
         	data "ENFJ" value: num_visited_target_ENFJ style: spline;
@@ -899,11 +891,13 @@ experiment MBTI type: gui benchmark: false  {
         	data "ISTJ" value: num_visited_target_ISTJ style: spline;
         	data "ISTP" value: num_visited_target_ISTP style: spline;
         	}
-    	} */	
+    	}
+    	*/ 	
 	}
 }
 
 
+/** 
 experiment Batch_MBTI type:batch repeat: 100 keep_seed: false {
 	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1;
 	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 1280;
@@ -919,4 +913,4 @@ experiment Batch_MBTI type:batch repeat: 100 keep_seed: false {
 	//}
 	
 }
-
+*/
