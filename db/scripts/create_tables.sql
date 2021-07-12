@@ -35,16 +35,27 @@ CREATE TABLE TB_TARGET (ID INTEGER PRIMARY KEY AUTOINCREMENT,
 )
 
 
-CREATE TABLE TB_SELLER_PRODUCTIVITY(ID INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE TB_SELLER_PRODUCTIVITY(ID SERIAL PRIMARY KEY,
                                     INTERACTION INTEGER,
-                                    SELLER_NAME TEXT,
-                                    SELLER_ORIGINAL_MBTI TEXT,
-                                    SELLER_REAL_MBTI TEXT,
-                                    BUYER_TARGET TEXT,
-                                    LOCATION_TARGET TEXT,
+                                    SELLER_NAME VARCHAR(100),
+                                    SELLER_ORIGINAL_MBTI VARCHAR(100),
+                                    SELLER_REAL_MBTI VARCHAR(100),
+                                    BUYER_TARGET VARCHAR(1000),
+                                    LOCATION_TARGET VARCHAR(1000),
                                     IS_EXTROVERTED INT,
                                     IS_SENSING INT,
                                     IS_THINKING INT,
                                     IS_JUDGING INT,
                                     NUMBER_OF_VISITED_BUYERS INT,
-                                    TIMESTAMP DATETIME DEFAULT CURRENT_TIMESTAMP)
+                                    EXPERIMENT_NAME VARCHAR(50),
+                                    SEED FLOAT
+                                    );
+
+SELECT user, pid, client_addr, query, query_start, NOW() - query_start AS elapsed
+FROM pg_stat_activity
+WHERE query != '<IDLE>'
+-- AND EXTRACT(EPOCH FROM (NOW() - query_start)) > 1
+ORDER BY elapsed DESC;
+
+SELECT COUNT(*) FROM TB_SELLER_PRODUCTIVITY;
+TRUNCATE TABLE TB_SELLER_PRODUCTIVITY;

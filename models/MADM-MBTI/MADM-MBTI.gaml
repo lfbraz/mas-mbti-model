@@ -9,6 +9,9 @@ model MBTI
 
 global {
 
+
+	int iteration_number <- 1;
+
 	int nbsellers;
 	int nbbuyers;
 	bool turn_off_time;
@@ -16,7 +19,7 @@ global {
 	list<point> visited_target;
 		
 	int steps <- 0;
-	int max_steps <- 500;
+	int max_steps <- 5000; // CHANGED
 	
 	int num_visited_target_ENFJ <- 0;
 	int num_visited_target_ENFP <- 0;
@@ -34,17 +37,18 @@ global {
 	int num_visited_target_ISFP <- 0;
 	int num_visited_target_ISTJ <- 0;
 	int num_visited_target_ISTP <- 0;
-	
+
 	geometry shape <- square(500);
-	//map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
-	//map<string, string> PARAMS <- ['host'::"./SQLExpress", 'dbtype'::'sqlserver', 'database'::'TESTEDB', 'port'::'1433', 'user'::'gama_user', 'passwd'::'gama#123'];
+	// map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
+	// map<string, string> PARAMS_SQL <- ['host'::hostname, 'dbtype'::'sqlserver', 'database'::'TESTEDB', 'port'::'1433', 'user'::'gama_user', 'passwd'::'gama#123'];
 	map<string, string> PARAMS <- ['host'::'localhost', 'dbtype'::'Postgres', 'database'::'gama_data', 'port'::'5432', 'user'::'postgres_user', 'passwd'::'gama#123'];
 	
 	init {
+		write "new simulation created: " + name;
 		create buyers number: nbbuyers;
 
 		create sellers number: nbsellers {
-			do init(['E','S','F','J']);
+			do init(['E','S','F','J'] );
 		}
 
 		create sellers number: nbsellers {
@@ -105,21 +109,21 @@ global {
 		
 		create sellers number: nbsellers {
 			do init(['I','N','T','P']);
-		}		
+		}
 		
 	}
 	
 	reflex stop when:steps=max_steps{
-		do pause;		
+		do die;		
 	}
 	
 	reflex count{
+		write "Performing step: " + steps;
 		steps  <- steps + 1;
 	}
 }
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
-	float viewdist_sellers <- 100.0;
 	float viewdist_buyers <- 50.0;
 	//float speed <- 20.0;
 	int count_people_around <- 0 ;
@@ -173,7 +177,13 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	date end_time;
 	
 	int number_of_visited_buyers <- 0;
-		
+	
+	string experiment_name;
+
+	list<buyers> buyers_in_my_view_global;
+	map<buyers, float> buyers_distance_to_me_global;
+	map<buyers, float> buyers_distance_norm_global;
+			
 	action define_personality(list<string> mbti_personality){
 		E_I <- mbti_personality at 0;
 		S_N <- mbti_personality at 1;
@@ -192,7 +202,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		add is_thinking?"T":"F" to: my_real_personality;
 		add is_judging?"J":"P" to: my_real_personality;
 		
-		color <- #green;		
+		color <- #purple;		
 	}
 
 	action define_personality_without_prob(list<string> mbti_personality){
@@ -213,14 +223,15 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		add is_thinking?"T":"F" to: my_real_personality;
 		add is_judging?"J":"P" to: my_real_personality;
 		
-		color <- #green;		
+		color <- #purple;		
 	}
 	
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti_personality)
 	{		
-	    // write "Connection to POSTGRES is " +  testConnection(PARAMS);
+        // write PARAMS_SQL;
+        // write "Connection to SQL is " +  testConnection(PARAMS_SQL);
 		// set my personality
 		my_personality <- string(mbti_personality);
 		my_current_personality <- mbti_personality;
@@ -230,7 +241,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
-		do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY";
+		 do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name]; // CHANGED
+		//do executeUpdate params: PARAMS updateComm: "TRUNCATE TABLE TB_SELLER_PRODUCTIVITY"; 
 		
 		//do define_personality(mbti_personality);
 		do define_personality_without_prob(mbti_personality);
@@ -246,7 +258,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
-	perceive target:buyers in: viewdist_buyers*2{
+	perceive target:buyers in: viewdist_buyers{
 		// Seller only focus on buyer if it wasn`t visited yet
 		if(!self.visited){
 			focus id:"location_buyer" var:location;
@@ -261,7 +273,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//}
 	
 	// TODO: consider teamates
-	perceive target:sellers{
+	perceive target:sellers in: viewdist_buyers{
 		// We must validate that only our teammates would be considered (also remove the seller itself)
 		if(myself.name != self.name){
 			focus id:"location_seller" var:location;
@@ -322,31 +334,40 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		return map<buyers, float>(buyers_in_my_view collect (each::each.qty_buyers));		
 	}
 	
+	action get_buyers_in_my_view(list list_of_buyers){
+		buyers_in_my_view_global <- get_buyers_from_points(list_of_buyers);
+		buyers_in_my_view_global <- reverse (buyers_in_my_view_global sort_by (each distance_to self));
+		
+		// Get the distance of each buyer to the seller and calculate the inverted norm score
+		buyers_distance_to_me_global  <- get_distances(buyers_in_my_view_global); 
+		buyers_distance_norm_global <- buyers_distance_to_me_global.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me_global, "cost")));
+	}
+	
 	action get_extroversion_introversion_score(list list_of_points){
 		map<buyers, float> score_e_i;
 		
-		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
+		//list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		// When there is a unique agent we can simply consider it as the max score
-		if(length(buyers_in_my_view)=1){
-			score_e_i <-  map<buyers, float>(buyers_in_my_view collect (first(each)::1.0));
+		if(length(buyers_in_my_view_global)=1){
+			score_e_i <-  map<buyers, float>(buyers_in_my_view_global collect (first(each)::1.0));
 		}
 		else {			
 		
-			buyers_in_my_view <- reverse (buyers_in_my_view sort_by (each distance_to self));
+			// buyers_in_my_view <- reverse (buyers_in_my_view sort_by (each distance_to self));
 				
-			map<buyers, float> buyers_distance_to_me;
-			map<buyers, float> buyers_distance_norm;
+			// map<buyers, float> buyers_distance_to_me;
+			// map<buyers, float> buyers_distance_norm;
 			
 			// Get the distance of each buyer to the seller and calculate the inverted norm score
-			buyers_distance_to_me  <- get_distances(buyers_in_my_view); 
-			buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));
+			// buyers_distance_to_me  <- get_distances(buyers_in_my_view); 
+			// buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));
 			
 			map<buyers, float> buyers_size;
 			map<buyers, float> buyers_size_norm;
 			
 			// Get how many people exists in the buyer
-			buyers_size <- get_buyers_size(buyers_in_my_view);
+			buyers_size <- get_buyers_size(buyers_in_my_view_global);
 			
 			string criteria_type;
 			
@@ -355,7 +376,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			buyers_size_norm <- buyers_size.pairs as_map (each.key::float(get_normalized_values(each.value, buyers_size, criteria_type)));			
 			
 			// Calculate SCORE-E-I
-			score_e_i <- buyers_distance_norm.pairs as_map (each.key::each.value+(buyers_size_norm[each.key]));
+			score_e_i <- buyers_distance_norm_global.pairs as_map (each.key::each.value+(buyers_size_norm[each.key]));
 			
 			/* 
 			// Log to the database
@@ -394,23 +415,23 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 
 	action get_sensing_intuition_score(list list_of_points){
 		map<buyers, float> score_s_n;
-		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
+		//list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		// When there is a unique agent we can simply consider it as the max score
-		if(length(buyers_in_my_view)=1){
-			score_s_n <-  map<buyers, float>(buyers_in_my_view collect (first(each)::1.0));
+		if(length(buyers_in_my_view_global)=1){
+			score_s_n <-  map<buyers, float>(buyers_in_my_view_global collect (first(each)::1.0));
 		}
 		else {
 		
-			map<buyers, float> buyers_distance_to_me;
-			map<buyers, float> buyers_distance_norm;
+			//map<buyers, float> buyers_distance_to_me;
+			//map<buyers, float> buyers_distance_norm;
 				
 			// Get the distance of each buyer to the seller and calculate the inverted norm score
-			buyers_distance_to_me <- get_distances(buyers_in_my_view);
-			buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));			
+			//buyers_distance_to_me <- get_distances(buyers_in_my_view);
+			//buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));			
 			
 			// Calculate the density using simple_clustering_by_distance technique
-			list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view, 30));
+			list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view_global, 30));
 			list<map<list<buyers>, int>> clusters_density <-list<map<list<buyers>, int>>(clusters collect (each::length(each)));
 			
 			// Here we must navigate in three different levels because of the structure of the list of maps of lists		
@@ -435,7 +456,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			buyers_density_norm <- buyers_density.pairs as_map (each.key::(max(buyers_density)>1) ? get_normalized_values(each.value, buyers_density, "benefit") : 1.0);
 			
 			// Calculate SCORE-S-N
-			score_s_n <- buyers_distance_norm.pairs as_map (each.key::((each.value*distance_weight)+(buyers_density_norm[each.key]*density_weight)));
+			score_s_n <- buyers_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)+(buyers_density_norm[each.key]*density_weight)));
 			
 			/*	
 			// Log to the database
@@ -471,21 +492,21 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	action get_thinking_feeling_score(list list_of_points){
 		map<buyers, float> score_t_f;
-		list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
+		//list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		list sellers_perceived <- get_sellers_from_points(sellers_in_my_view);
 		
-		map<buyers, float> buyers_distance_to_me;
-		map<buyers, float> buyers_distance_norm;
+		//map<buyers, float> buyers_distance_to_me;
+		//map<buyers, float> buyers_distance_norm;
 				
 		// Get the distance of each buyer to the seller and calculate the inverted norm score
-		buyers_distance_to_me <- get_distances(buyers_in_my_view);		
-		buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));
+		//buyers_distance_to_me <- get_distances(buyers_in_my_view);		
+		//buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));
 		
 		float inc_num_sellers_close_to_buyer <- 0.0;
 		map<buyers, float> num_sellers_close_to_buyer;		
 	
-		loop buyer over: buyers_in_my_view{
+		loop buyer over: buyers_in_my_view_global{
 			loop seller over: sellers_perceived{
 				if(point(seller) distance_to point(buyer) < min_distance_to_exclude){
 					inc_num_sellers_close_to_buyer  <- inc_num_sellers_close_to_buyer + 1.0;	
@@ -507,7 +528,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		num_sellers_close_to_buyer_norm <- num_sellers_close_to_buyer.pairs as_map (each.key::(get_normalized_values(each.value, num_sellers_close_to_buyer, "cost")));		
 		
 		// Calculate SCORE-T-F
-		score_t_f <- buyers_distance_norm.pairs as_map (each.key::((each.value*distance_weight)+(num_sellers_close_to_buyer_norm[each.key]*sellers_close_to_buyer_weight)));
+		score_t_f <- buyers_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)+(num_sellers_close_to_buyer_norm[each.key]*sellers_close_to_buyer_weight)));
 		
 		/*
 		// Log to the database
@@ -565,8 +586,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	action persist_seller_action(buyers buyer_target, point location_target){		
-		
-		
 		// log into db the calculated score
 		do insert (params: PARAMS,
 					into: "TB_SELLER_PRODUCTIVITY",
@@ -580,7 +599,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 							  "IS_SENSING", 
 							  "IS_THINKING", 
 							  "IS_JUDGING",
-							  "NUMBER_OF_VISITED_BUYERS"
+							  "NUMBER_OF_VISITED_BUYERS",
+							  "EXPERIMENT_NAME",
+							  "SEED"
 							  ],
 					values:  [steps, 
 							  self.name, 
@@ -592,7 +613,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 							  int(is_sensing), 
 							  int(is_thinking), 
 							  int(is_judging),
-							  self.number_of_visited_buyers
+							  self.number_of_visited_buyers,
+							  world.name,
+							  world.seed
 					]);
 	}
 	  
@@ -691,7 +714,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 						} 
 					}
 					
-					do persist_seller_action(current_buyer, target);	
+					// do persist_seller_action(current_buyer, target);	
 					do add_belief(met_buyer);
 					add target to: visited_target;
 				}
@@ -710,6 +733,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	map<buyers, float> calculate_score(list<point> buyers_to_calculate){
 		start_time <- turn_off_time ? #nan : machine_time;
+		do get_buyers_in_my_view(buyers_to_calculate);
 		// Calculate score for E-I 
 		map<buyers, float> buyers_e_i_score;
 		buyers_e_i_score <- get_extroversion_introversion_score(buyers_to_calculate);		
@@ -777,12 +801,16 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	aspect default {	  
 	  	
-	  draw circle(10) color: color;
+	  draw circle(5) color: color; // CHANGED
 	  
 	  // enable view distance
-	  //draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
-
-	  //if(is_extroverted){draw ("MBTI:E" ) color:#black size:4;}
+	  draw circle(viewdist_buyers) color:rgb(#white,0.5) border: #red;
+	  
+	  // CHANGED
+	  // string regex <- '\\W';
+	  // draw (replace_regex(string(self.my_real_personality), regex, "")) color:#white size:4 at:{location.x-8,location.y};
+	  
+	  //draw ( replace_regex(string(self.my_real_personality), "\W", "")   ) color:#black size:4;
 	  
 	  //draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
 	  //draw ("Velocidade:" + speed) color:#black size:4 at:{location.x,location.y+2*4}; 
@@ -804,35 +832,45 @@ species buyers skills: [moving] schedules: []  {
 	bool visited <- false;
 	int qty_buyers <- rnd (1, 30);
 	
-	image_file buyer_icon <- image_file("../../includes/buyer.png");	
+	// image_file buyer_icon <- image_file("../../includes/buyer.png"); // CHANGED	
 	
 	aspect default {  
-	  draw rectangle(30, 15) color: #orange at:{location.x,location.y-20};
-	  draw (string(self.name)) color:#black size:4 at:{location.x-10,location.y-18};
-	  draw circle(5) color: visited? #green : #blue  at:{location.x,location.y+20};
-	  draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; 
-	  draw buyer_icon size: 40;
+	  draw rectangle(1, 1) color: visited? #green : #orange at:{location.x,location.y};
+	  // draw rectangle(37, 18) color: #orange at:{location.x,location.y-20}; // CHANGED
+	  // draw (string(self.name)) color:#black size:4 at:{location.x-14,location.y-18}; // CHANGED
+	  
+	  //draw (string(self.name)) color:#black size:4 at:{location.x-14,location.y-18};
+	  
+	  // draw circle(5) color: visited? #green : #blue  at:{location.x,location.y+20}; // CHANGED
+	  // draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; // CHANGED 
+	  //draw buyer_icon size: 40; // CHANGED
 	}
 }
 
-grid grille width: 100 height: 100 {
+// CHANGED
+grid grille width: 160 height: 160 {
 	rgb color <- #white;
 }
 
-experiment MBTI type: gui benchmark: false {
+
+experiment MBTI type: gui benchmark: false  {
 	float minimum_cycle_duration <- 0.00;
 	
 	// Random Seed Control
-	float seed <- 2014.0; 
+	//float seed <- 2014.0; 
 	//float seed <- 2015.0;
 	//float seed <- 2016.0;
 	//float seed <- 2017.0;
 	//float seed <- 2018.0;
 	
 	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1 among: [1,3,5,10,15,20];
-	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 100 among: [10,50,100,200,400,500];
+	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 1280 among: [10,50,100,200,400,500, 1280, 6400, 24320]; // CHANGED
 	parameter "Disable time track" category:"General" var: turn_off_time <- true;
 	parameter "Disable personality change" category:"General" var: turn_off_personality_probability <- false;
+	
+	reflex t when: every(10#cycle) {
+		do compact_memory;
+	}
 	
 	/** Insert here the definition of the input and output of the model */
 	output {
@@ -841,7 +879,7 @@ experiment MBTI type: gui benchmark: false {
 			species sellers aspect:default;
 			species buyers aspect:default;
 		}
-		
+	/**	
 		display "sellers_performance" type: java2D{
         	chart "Seller's performance" type: series y_tick_unit: 1 x_label: 'Cycles' label_font: font('Serif', 14 #plain) y_label: 'Number of visited buyers' {        		
         	data "ENFJ" value: num_visited_target_ENFJ style: spline;
@@ -861,7 +899,24 @@ experiment MBTI type: gui benchmark: false {
         	data "ISTJ" value: num_visited_target_ISTJ style: spline;
         	data "ISTP" value: num_visited_target_ISTP style: spline;
         	}
-    	}	
+    	} */	
 	}
+}
+
+
+experiment Batch_MBTI type:batch repeat: 100 keep_seed: false {
+	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1;
+	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 1280;
+	parameter "Disable time track" category:"General" var: turn_off_time <- true;
+	parameter "Disable personality change" category:"General" var: turn_off_personality_probability <- false;
+
+	//output {
+	//	display map {
+	//		grid grille lines: #darkgreen;
+	//		species sellers aspect:default;
+	//		species buyers aspect:default;
+	//	}		
+	//}
+	
 }
 
