@@ -20,23 +20,6 @@ global {
 		
 	int steps <- 0;
 	int max_steps <- 5000;
-		
-	int num_visited_target_ENFJ <- 0;
-	int num_visited_target_ENFP <- 0;
-	int num_visited_target_ENTJ <- 0;
-	int num_visited_target_ENTP <- 0;
-	int num_visited_target_ESFJ <- 0;
-	int num_visited_target_ESFP <- 0;
-	int num_visited_target_ESTJ <- 0;
-	int num_visited_target_ESTP <- 0;
-	int num_visited_target_INFJ <- 0;
-	int num_visited_target_INFP <- 0;
-	int num_visited_target_INTJ <- 0;
-	int num_visited_target_INTP <- 0;
-	int num_visited_target_ISFJ <- 0;
-	int num_visited_target_ISFP <- 0;
-	int num_visited_target_ISTJ <- 0;
-	int num_visited_target_ISTP <- 0;
 
 	//geometry shape <- square(10);
 	// map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
@@ -251,12 +234,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}		
 	}
 	
-	//perceive target:sellers in: viewdist_sellers*2{
-	//	focus id:"location_seller" var:location;
-	//	sellers_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
-	//	do remove_belief(new_predicate("location_seller"));
-	//}
-	
 	// TODO: consider teamates
 	perceive target:sellers in: viewdist_buyers{
 		// We must validate that only our teammates would be considered (also remove the seller itself)
@@ -329,10 +306,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	action get_extroversion_introversion_score{
-		write "I'm in get_extroversion_introversion_score";
 		map<buyers, float> score_e_i;
-		
-		//list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		// When there is a unique agent we can simply consider it as the max score
 		if(length(buyers_in_my_view_global)=1){
@@ -340,15 +314,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}
 		else {			
 		
-			// buyers_in_my_view <- reverse (buyers_in_my_view sort_by (each distance_to self));
-				
-			// map<buyers, float> buyers_distance_to_me;
-			// map<buyers, float> buyers_distance_norm;
-			
-			// Get the distance of each buyer to the seller and calculate the inverted norm score
-			// buyers_distance_to_me  <- get_distances(buyers_in_my_view); 
-			// buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));
-			
 			map<buyers, float> buyers_size;
 			map<buyers, float> buyers_size_norm;
 			
@@ -400,9 +365,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}	
 
 	action get_sensing_intuition_score{
-		write "I'm in get_sensing_intuition_score";
 		map<buyers, float> score_s_n;
-		//list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		// When there is a unique agent we can simply consider it as the max score
 		if(length(buyers_in_my_view_global)=1){
@@ -410,13 +373,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}
 		else {
 		
-			//map<buyers, float> buyers_distance_to_me;
-			//map<buyers, float> buyers_distance_norm;
-				
-			// Get the distance of each buyer to the seller and calculate the inverted norm score
-			//buyers_distance_to_me <- get_distances(buyers_in_my_view);
-			//buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));			
-			
 			// Calculate the density using simple_clustering_by_distance technique
 			list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view_global, 10));
 			list<map<list<buyers>, int>> clusters_density <-list<map<list<buyers>, int>>(clusters collect (each::length(each)));
@@ -478,9 +434,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	action get_thinking_feeling_score{
-		write "I'm in get_thinking_feeling_score";
 		map<buyers, float> score_t_f;
-		//list<buyers> buyers_in_my_view <- get_buyers_from_points(list_of_points);
 		
 		list sellers_perceived <- get_sellers_from_points(sellers_in_my_view);
 		
@@ -604,20 +558,12 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
 	rule belief: new_predicate("location_buyer") new_desire: sell_item strength:10.0;
 
-	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
-	//rule belief: new_predicate("location_seller") new_desire: say_something strength:10.0;
-
-
 	// plan that has for goal to fulfill the wander desire	
 	plan letsWander intention:wander 
 	{
 		do wander amplitude: 60.0;
 		// speed: speed;
 	}
-	
-	//plan saySomething intention: say_something{
-	//	write "Say Something";
-	//} 
 	
 	// plan that has for goal to fulfill the "sell_item" desire
 	plan sellItem intention:sell_item{
@@ -643,58 +589,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				if current_buyer != nil and !current_buyer.visited{
 					ask current_buyer {visited <- true;}
 					number_of_visited_buyers <- number_of_visited_buyers + 1;
-					// persist into the db the seller`s action
-					
-					switch string(self.my_real_personality) {
-						match "['E','N','F','J']" {
-							num_visited_target_ENFJ <- num_visited_target_ENFJ+1;
-						}
-						match "['E','N','F','P']" {
-							num_visited_target_ENFP <- num_visited_target_ENFP+1;
-						}
-						match "['E','N','T','J']" {
-							num_visited_target_ENTJ <- num_visited_target_ENTJ+1;
-						}
-						match "['E','N','T','P']" {
-							num_visited_target_ENTP <- num_visited_target_ENTP+1;							
-						}
-						match "['E','S','F','J']" {
-							num_visited_target_ESFJ <- num_visited_target_ESFJ+1;
-						}
-						match "['E','S','F','P']" {
-							num_visited_target_ESFP <- num_visited_target_ESFP+1;
-						}
-						match "['E','S','T','J']" {
-							num_visited_target_ESTJ <- num_visited_target_ESTJ+1;
-						}
-						match "['E','S','T','P']" {
-							num_visited_target_ESTP <- num_visited_target_ESTP+1;
-						}
-						match "['I','N','F','J']" {
-							num_visited_target_INFJ <- num_visited_target_INFJ+1;
-						}
-						match "['I','N','F','P']" {
-							num_visited_target_INFP <- num_visited_target_INFP+1;
-						}
-						match "['I','N','T','J']" {
-							num_visited_target_INTJ <- num_visited_target_INTJ+1;
-						}
-						match "['I','N','T','P']" {
-							num_visited_target_INTP <- num_visited_target_INTP+1;
-						}
-						match "['I','S','F','J']" {
-							num_visited_target_ISFJ <- num_visited_target_ISFJ+1;
-						}
-						match "['I','S','F','P']" {
-							num_visited_target_ISFP <- num_visited_target_ISFP+1;
-						}
-						match "['I','S','T','J']" {
-							num_visited_target_ISTJ <- num_visited_target_ISTJ+1;
-						}
-						match "['I','S','T','P']" {
-							num_visited_target_ISTP <- num_visited_target_ISTP+1;
-						} 
-					}
 					
 					// do persist_seller_action(current_buyer, target);	
 					do add_belief(met_buyer);
@@ -740,9 +634,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		));
 										  
 		//if(!turn_off_time) {write "sum_all_scores: " + (end_time-start_time);}
-		
-		write "buyers_score: " + buyers_score;
-		
+	
 		return buyers_score;
 	}
 		
@@ -793,9 +685,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	  
 	  //write("Intenção Corrente:" + get_values(has_item)  ) ;
 	   
-	  //draw ("B:" + length(belief_base) + ":" + belief_base) color:#black size:4; 
-	  //draw ("D:" + length(desire_base) + ":" + desire_base) color:#black size:4 at:{location.x,location.y+4}; 
-	  //draw ("I:" + length(intention_base) + ":" + intention_base) color:#black size:4 at:{location.x,location.y+2*4}; 
 	  //draw ("curIntention:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+3*4};
 	  //draw ("possible_itens:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+4*4}; 		
 	}
