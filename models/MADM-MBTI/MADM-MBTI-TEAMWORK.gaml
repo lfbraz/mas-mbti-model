@@ -46,15 +46,14 @@ global {
 	init {
 		write "new simulation created: " + name;
 		
-		
 		create buyers number: nbbuyers;
 		write "Buyers: " + nbbuyers;
 		
-		/*
+		 
 		create sellers number: nbsellers {
 			do init(['E','S','F','J'] );
-		}		
-		 
+		}
+		
 		create sellers number: nbsellers {
 			do init(['E','S','F','P']);
 		}		
@@ -113,14 +112,6 @@ global {
 		
 		create sellers number: nbsellers {
 			do init(['I','N','T','P']);
-		}
-		*/
-		create sellers number: nbsellers {
-			do init(['E','N','T','P']);
-		}
-		
-		create sellers number: nbsellers {
-			do init(['I','N','F','P']);
 		}
 			
 	}
@@ -754,20 +745,20 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		// Calculate score for S-N
 		map<buyers, float> buyers_s_n_score;
-		//buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
-		//if(!turn_off_time) {write "get_sensing_intuition_score: " + (end_time-start_time);}
+		buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
+		if(!turn_off_time) {write "get_sensing_intuition_score: " + (end_time-start_time);}
 		
 		// Calculate score for T-F
 		map<buyers, float> buyers_t_f_score;
-		//buyers_t_f_score <- get_thinking_feeling_score(possible_buyers);		
-		//if(!turn_off_time) {write "get_thinking_feeling_score: " + (end_time-start_time);}
+		buyers_t_f_score <- get_thinking_feeling_score(possible_buyers);		
+		if(!turn_off_time) {write "get_thinking_feeling_score: " + (end_time-start_time);}
 		
 		// Sum all scores
 		map<buyers, float> buyers_score;
 		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::((each.value*weight_e_i) + 
 																					  (buyers_s_n_score[each.key]*weight_s_n) + 
 																					  (buyers_t_f_score[each.key]*weight_t_f))));
-		//if(!turn_off_time) {write "sum_all_scores: " + (end_time-start_time);}
+		if(!turn_off_time) {write "sum_all_scores: " + (end_time-start_time);}
 		
 		return buyers_score;
 	}
@@ -861,8 +852,6 @@ experiment MBTI type: gui benchmark: false  {
 	//float seed <- 2016.0;
 	//float seed <- 2017.0;
 	//float seed <- 2018.0;
-	
-	float seed <- 1985.0;
 	
 	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1 among: [1,3,5,10,15,20];
 	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 50 among: [10,50,100,200,400,500, 1280, 6400, 24320];
