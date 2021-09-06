@@ -484,15 +484,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		list sellers_perceived <- get_sellers_from_points(sellers_in_my_view);
 		
-		write sellers_perceived;
-		
-		//map<buyers, float> buyers_distance_to_me;
-		//map<buyers, float> buyers_distance_norm;
-				
-		// Get the distance of each buyer to the seller and calculate the inverted norm score
-		//buyers_distance_to_me <- get_distances(buyers_in_my_view);		
-		//buyers_distance_norm <- buyers_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, buyers_distance_to_me, "cost")));
-		
 		float inc_num_sellers_close_to_buyer <- 0.0;
 		map<buyers, float> num_sellers_close_to_buyer;		
 	
@@ -517,13 +508,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		map<buyers, float> num_sellers_close_to_buyer_norm;
 		num_sellers_close_to_buyer_norm <- num_sellers_close_to_buyer.pairs as_map (each.key::(get_normalized_values(each.value, num_sellers_close_to_buyer, "cost")));		
 		
-		write "num_sellers_close_to_buyer: " + num_sellers_close_to_buyer;
-		write "num_sellers_close_to_buyer_norm: " + num_sellers_close_to_buyer_norm;
-		
 		// Calculate SCORE-T-F
 		score_t_f <- buyers_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)+(num_sellers_close_to_buyer_norm[each.key]*sellers_close_to_buyer_weight)));
-		
-		write "score_t_f: " + score_t_f;
+
 		/*
 		// Log to the database
 			loop buyer over: score_t_f.pairs {
@@ -564,6 +551,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			new_target <- point(max_buyer_score.keys[0]);
 			
 			if (target != point(max_buyer_score.keys[0])) {	
+				write "HAS CHANGED THE TARGET";
 				// If the target has changed seller must move to this new direction
 				target <- new_target;			
 				do goto target: target;
@@ -753,8 +741,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 										  
 		//if(!turn_off_time) {write "sum_all_scores: " + (end_time-start_time);}
 		
-		write "buyers_score-e-i: " + buyers_e_i_score.pairs collect (each.key::((each.value*weight_e_i)));
-		write "buyers_score-s-n: " + buyers_s_n_score.pairs collect (each.key::((each.value*weight_s_n)));
 		write "buyers_score: " + buyers_score;
 		
 		return buyers_score;
@@ -907,6 +893,31 @@ experiment MBTI type: gui benchmark: false  {
 							 do init(['I','Z','Z','Z']);
 							 set location <- {35, 25};
 							 }}
+	
+	user_command "Seller J" {create sellers number: nbsellers {
+						 do init(['Z','Z','F','J']);
+						 set location <- {40, 40};
+						 set viewdist_buyers <- 25.0;
+						 }
+						 create sellers number: nbsellers {
+							 do init(['E','Z','Z','Z']);
+							 set location <- {35, 30};
+							 set viewdist_buyers <- 20.0;
+							 }
+						 }
+	
+	user_command "Seller P" {create sellers number: nbsellers {
+						 do init(['Z','Z','F','P']);
+						 set location <- {40, 40};
+						 set viewdist_buyers <- 25.0;
+						 }
+						 create sellers number: nbsellers {
+							 do init(['E','Z','Z','Z']);
+							 set location <- {35, 30};
+							 set viewdist_buyers <- 20.0;
+							 }
+						 }
+	
 							 
 	user_command "Seller IN" {create sellers number: nbsellers {
 						 do init(['I','N','Z','Z']);
