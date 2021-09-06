@@ -143,13 +143,18 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	date end_time;
 	
 	int number_of_visited_buyers <- 0;
+	map<buyers, float> num_visits_to_the_buyer;
 	
 	string experiment_name;
 
 	list<buyers> buyers_in_my_view_global;
 	map<buyers, float> buyers_distance_to_me_global;
 	map<buyers, float> buyers_distance_norm_global;
-			
+	
+	map<point, int> buyers_visited_in_cycle;
+	int number_of_cycles_to_return_visited_buyer <- 50;
+	int max_number_of_visit_to_a_visited_buyer <- 5;
+	
 	action define_personality(list<string> mbti_personality){
 		E_I <- mbti_personality at 0;
 		S_N <- mbti_personality at 1;
@@ -228,10 +233,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:buyers in: viewdist_buyers{
 		// Seller only focus on buyer if it wasn`t visited yet
-		if(!self.visited){
+		//if(!self.visited){
 			focus id:"location_buyer" var:location;
 			ask myself {do remove_intention(wander, false);	}	
-		}		
+		//}		
 	}
 	
 	// TODO: consider teamates
@@ -272,7 +277,18 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	list remove_visited_target(list list_of_points){
-		remove all:visited_target from: list_of_points;
+		map<point, int> buyers_within_limit ; 
+		list<point> buyers_to_remove;
+
+		// Here we have a parameter to define the min cycles to consider before a seller can return to a already visited buyer
+		buyers_within_limit <- map<point, int>(buyers_visited_in_cycle.pairs where ((steps - each.value) < number_of_cycles_to_return_visited_buyer));
+		buyers_to_remove <- buyers_within_limit.keys;
+
+		// Here we have a parameter to define the max number of visits to consider as a limit to a seller be able to visit again the same buyer
+		buyers_within_limit  <- map<point, int>(num_visits_to_the_buyer.pairs where ((each.value) >= max_number_of_visit_to_a_visited_buyer));
+		buyers_to_remove <- (buyers_to_remove union buyers_within_limit.keys);
+		
+		remove all:buyers_to_remove from: list_of_points;
 		return list_of_points;
 	}
 	
@@ -586,13 +602,21 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				got_buyer <- true;
 				
 				buyers current_buyer <- buyers first_with (target = each.location);
-				if current_buyer != nil and !current_buyer.visited{
+				if current_buyer != nil{
 					ask current_buyer {visited <- true;}
 					number_of_visited_buyers <- number_of_visited_buyers + 1;
+					
+					// Add number of visits to consider in E-I dichotomy
+					add current_buyer::num_visits_to_the_buyer[current_buyer] + 1 to:num_visits_to_the_buyer;					
+					write "num_visits_to_the_buyer: " + num_visits_to_the_buyer;
 					
 					// do persist_seller_action(current_buyer, target);	
 					do add_belief(met_buyer);
 					add target to: visited_target;
+					
+					// We need to control the cycle a seller visited a buyer to be able to remove after the limit
+					add point(current_buyer)::steps to: buyers_visited_in_cycle;
+					
 				}
 				
 				do remove_belief(new_predicate("location_buyer", ["location_value"::target]));				
