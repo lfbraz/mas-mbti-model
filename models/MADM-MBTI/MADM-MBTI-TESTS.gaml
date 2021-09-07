@@ -24,7 +24,8 @@ global {
 	//geometry shape <- square(10);
 	// map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
 	// map<string, string> PARAMS_SQL <- ['host'::hostname, 'dbtype'::'sqlserver', 'database'::'TESTEDB', 'port'::'1433', 'user'::'gama_user', 'passwd'::'gama#123'];
-	map<string, string> PARAMS <- ['host'::'localhost', 'dbtype'::'Postgres', 'database'::'gama_data', 'port'::'5432', 'user'::'postgres_user', 'passwd'::'gama#123'];
+
+	// map<string, string> PARAMS <- ['host'::'localhost', 'dbtype'::'Postgres', 'database'::'gama_data', 'port'::'5432', 'user'::'postgres_user', 'passwd'::'gama#123'];
 	
 	init {
 		write "new simulation created: " + name;
@@ -61,14 +62,7 @@ global {
 		// closer buyer
 		create buyers number: 1 {
 			set location <- {40, 30};
-		}
-		
-		
-		// non visited buyer
-		create buyers number: 1 {
-			set location <- {50, 15};
 		}	
-			
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -204,7 +198,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
-		 do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name];
+		
+		// do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name];
 		
 		//do executeUpdate params: PARAMS updateComm: "TRUNCATE TABLE TB_SELLER_PRODUCTIVITY"; 
 		
@@ -384,6 +379,21 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 			// Calculate the density using simple_clustering_by_distance technique
 			list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view_global, 10));
+			
+			write "clusters: " + clusters;
+			list<point> cluster_list;
+			
+			loop cluster over: clusters{
+				write "cluster: " + cluster;
+
+				cluster_list <- list<point>((cluster collect each));
+				write "cluster_list: " + cluster_list;
+				
+				write "farthest_point_to: " + buyers(geometry(cluster) farthest_point_to(point(self))) ;
+				write "clusters-centroid: " + buyers((centroid(first(cluster_list))));
+			}
+			
+			
 			list<map<list<buyers>, int>> clusters_density <-list<map<list<buyers>, int>>(clusters collect (each::length(each)));
 			
 			// Here we must navigate in three different levels because of the structure of the list of maps of lists		
@@ -530,6 +540,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}
 	}
 	
+	/* 
 	action persist_seller_action(buyers buyer_target, point location_target){		
 		// log into db the calculated score
 		do insert (params: PARAMS,
@@ -563,6 +574,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 							  world.seed
 					]);
 	}
+	*/
 	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
 	rule belief: new_predicate("location_buyer") new_desire: sell_item strength:10.0;
