@@ -32,50 +32,42 @@ global {
 		// density cluster
 		create buyers number: 1 {
 			set location <- myself.location + {-45, -10};
-			set qty_buyers <- 10;	
 		}
 		
 		create buyers number: 1 {
 			set location <- myself.location + {-40, -10};
-			set qty_buyers <- 12;	
 		}
 		
 		create buyers number: 1 {
 			set location <- myself.location + {-35, -10};
-			set qty_buyers <- 8;	
 		}
 		
 		create buyers number: 1 {
 			set location <- myself.location + {-30, -8};
-			set qty_buyers <- 30;	
 		}
 	
 		create buyers number: 1 {
 			set location <- myself.location + {-45, -5};
-			set qty_buyers <- 10;	
 		}
 		
 		create buyers number: 1 {
 			set location <- myself.location + {-40, -5};
-			set qty_buyers <- 11;	
 		}		
 		
 		create buyers number: 1 {
 			set location <- myself.location + {-35, -5};
-			set qty_buyers <- 22;
 		}	
-		
 		
 		// closer buyer
 		create buyers number: 1 {
 			set location <- {40, 30};
-			set qty_buyers <- 2;
-		}		
+		}
 		
-		//create sellers number: nbsellers {
-		//	do init(['I','N','T','P']);
-		//	set location <- myself.location + {-10, -10};
-		// }
+		
+		// non visited buyer
+		create buyers number: 1 {
+			set location <- {50, 15};
+		}	
 			
 	}
 	
@@ -142,7 +134,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	date start_time;
 	date end_time;
 	
-	int number_of_visited_buyers <- 0;
 	map<buyers, float> num_visits_to_the_buyer;
 	
 	string experiment_name;
@@ -153,7 +144,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	map<point, int> buyers_visited_in_cycle;
 	int number_of_cycles_to_return_visited_buyer <- 50;
-	int max_number_of_visit_to_a_visited_buyer <- 5;
+	int max_number_of_visit_to_a_visited_buyer <- 3;
 	
 	action define_personality(list<string> mbti_personality){
 		E_I <- mbti_personality at 0;
@@ -296,7 +287,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		if criteria_type="cost"{
 			return value>0 ? abs(min(buyers_values) / value) : 1.0;	
 		} else {
-			return abs(value / max(buyers_values));
+			return value>0 ? abs(value / max(buyers_values)) : 0.0;
 		}
 	}
 	
@@ -306,10 +297,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	map<buyers, float> get_distances_norm(list<buyers> buyers_in_my_view){
 		return map<buyers, float>(buyers_in_my_view collect (each::self distance_to (each)));
-	}
-	
-	map<buyers, float> get_buyers_size(list<buyers> buyers_in_my_view){
-		return map<buyers, float>(buyers_in_my_view collect (each::each.qty_buyers));		
 	}
 	
 	action get_buyers_in_my_view(list list_of_buyers){
@@ -330,20 +317,26 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}
 		else {			
 		
-			map<buyers, float> buyers_size;
-			map<buyers, float> buyers_size_norm;
+			//map<buyers, float> buyers_size;
+			map<buyers, float> num_visits_to_the_buyer_norm;
 			
 			// Get how many people exists in the buyer
-			buyers_size <- get_buyers_size(buyers_in_my_view_global);
+			//buyers_size <- get_buyers_size(buyers_in_my_view_global);
+			
+			// write "buyers_size: " + buyers_size;
+			write "get_extroversion_introversion_score-num_visits_to_the_buyer: " + num_visits_to_the_buyer;			
 			
 			string criteria_type;
 			
 			// According to the seller personality type the normalization procedure will change (cost or benefit attribute) 
-			criteria_type <- !self.is_extroverted ? "cost" : "benefit";			 
-			buyers_size_norm <- buyers_size.pairs as_map (each.key::float(get_normalized_values(each.value, buyers_size, criteria_type)));			
+			criteria_type <- self.is_extroverted ? "cost" : "benefit";			 
+			num_visits_to_the_buyer_norm <- num_visits_to_the_buyer.pairs as_map (each.key::float(get_normalized_values(each.value, num_visits_to_the_buyer, criteria_type)));
+			
+			write "get_extroversion_introversion_score-num_visits_to_the_buyer_norm: " + num_visits_to_the_buyer_norm;
 			
 			// Calculate SCORE-E-I
-			score_e_i <- buyers_distance_norm_global.pairs as_map (each.key::each.value+(buyers_size_norm[each.key]));
+			score_e_i <- buyers_distance_norm_global.pairs as_map (each.key::each.value+(num_visits_to_the_buyer_norm[each.key]));
+			write "score_e_i: " + score_e_i;
 			
 			/* 
 			// Log to the database
@@ -565,7 +558,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 							  int(is_sensing), 
 							  int(is_thinking), 
 							  int(is_judging),
-							  self.number_of_visited_buyers,
+							  0,
 							  world.name,
 							  world.seed
 					]);
@@ -604,11 +597,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				buyers current_buyer <- buyers first_with (target = each.location);
 				if current_buyer != nil{
 					ask current_buyer {visited <- true;}
-					number_of_visited_buyers <- number_of_visited_buyers + 1;
-					
 					// Add number of visits to consider in E-I dichotomy
-					add current_buyer::num_visits_to_the_buyer[current_buyer] + 1 to:num_visits_to_the_buyer;					
-					write "num_visits_to_the_buyer: " + num_visits_to_the_buyer;
+					add current_buyer::num_visits_to_the_buyer[current_buyer] + 1 to:num_visits_to_the_buyer;
+					write "sellItem-num_visits_to_the_buyer: " + num_visits_to_the_buyer;
 					
 					// do persist_seller_action(current_buyer, target);	
 					do add_belief(met_buyer);
@@ -665,9 +656,18 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//plan that has for goal to fulfill the define item target desire. This plan is instantaneous (does not take a complete simulation step to apply).
 	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
 		possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+		map<buyers, float> num_visits_to_the_buyer_init <- map<buyers, float>(get_buyers_from_points(possible_buyers) collect (each:: 0.0));
 		
+		write "num_visits_to_the_buyer_init: " + num_visits_to_the_buyer_init;
+		write "num_visits_to_the_buyer: " + num_visits_to_the_buyer;
+		
+		num_visits_to_the_buyer <- map<buyers, float>((num_visits_to_the_buyer_init.keys - num_visits_to_the_buyer.keys) collect (each::num_visits_to_the_buyer_init[each]) 
+									+ num_visits_to_the_buyer.pairs);
+		
+		write "num_visits_to_the_buyer-after-init: " + num_visits_to_the_buyer;
+				
 		// If a target was already visited we must removed it
-		possible_buyers <- remove_visited_target(possible_buyers);
+		possible_buyers <- remove_visited_target(possible_buyers);		
 		
 		// Calculate the scores based on MADM method
 		map<buyers, float> buyers_score;
@@ -721,7 +721,6 @@ species buyers skills: [moving] schedules: []  {
 	rgb color <- #blue;
 	float speed <- 3.0;
 	bool visited <- false;
-	int qty_buyers <- rnd (1, 30);
 	
 	//image_file buyer_icon <- image_file("../../includes/buyer.png");	
 	
@@ -729,7 +728,7 @@ species buyers skills: [moving] schedules: []  {
 	  //draw rectangle(30, 15) color: #orange at:{location.x,location.y-20};
 	  //draw (string(self.name)) color:#black size:4 at:{location.x-10,location.y-18};
 	  draw circle(2) color: visited? #green : #blue  at:{location.x,location.y};
-	  draw (string(self.qty_buyers)) color:#white size:4 at:{location.x,location.y}; 
+	  //draw (string(self.qty_buyers)) color:#white size:4 at:{location.x,location.y}; 
 	  //draw buyer_icon size: 40;
 	}
 }
