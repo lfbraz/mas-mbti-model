@@ -380,20 +380,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			// Calculate the density using simple_clustering_by_distance technique
 			list<list<buyers>> clusters <- list<list<buyers>>(simple_clustering_by_distance(buyers_in_my_view_global, 10));
 			
-			write "clusters: " + clusters;
-			list<point> cluster_list;
-			
-			loop cluster over: clusters{
-				write "cluster: " + cluster;
-
-				cluster_list <- list<point>((cluster collect each));
-				write "cluster_list: " + cluster_list;
-				
-				write "farthest_point_to: " + buyers(geometry(cluster) farthest_point_to(point(self))) ;
-				write "clusters-centroid: " + buyers((centroid(first(cluster_list))));
-			}
-			
-			
 			list<map<list<buyers>, int>> clusters_density <-list<map<list<buyers>, int>>(clusters collect (each::length(each)));
 			
 			// Here we must navigate in three different levels because of the structure of the list of maps of lists		
@@ -409,17 +395,40 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			
 			float distance_weight;
 			float density_weight;
+			float buyers_closest_to_edge_weight;
 			
-			density_weight <- self.is_sensing ? 0.2 : 0.8; 
-			distance_weight <- 1 - density_weight; 			
+			density_weight <- self.is_sensing ? 0.2 : 0.4;
+			buyers_closest_to_edge_weight <- self.is_sensing ? 0.2 : 0.4;
+			distance_weight <- 1 - density_weight - buyers_closest_to_edge_weight; 			
 			
 			// Normalize density as a benefit attribute
 			map<buyers, float> buyers_density_norm;
 			buyers_density_norm <- buyers_density.pairs as_map (each.key::(max(buyers_density)>1) ? get_normalized_values(each.value, buyers_density, "benefit") : 1.0);
-		
-			// Calculate SCORE-S-N
-			score_s_n <- buyers_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)+(buyers_density_norm[each.key]*density_weight)));
 			
+			// Calculate closest cluster point to the edge (perception radius)
+			list<point> cluster_list;
+			buyers buyer_closest_to_edge;
+			map<buyers, float> buyers_closest_to_edge;
+			
+			loop cluster over: clusters{
+				cluster_list <- list<point>((cluster collect each));			
+				buyer_closest_to_edge <- buyers(geometry(cluster) farthest_point_to(point(self)));
+				add buyer_closest_to_edge::(buyer_closest_to_edge distance_to self) to:buyers_closest_to_edge;
+			}
+			
+			// Normalize buyers_closest_to_edge as a benefit attribute
+			write "buyers_closest_to_edge: " + buyers_closest_to_edge;			
+			map<buyers, float> buyers_closest_to_edge_norm;
+			buyers_closest_to_edge_norm <- buyers_closest_to_edge.pairs as_map (each.key::get_normalized_values(each.value, buyers_closest_to_edge, "benefit"));
+			write "buyers_closest_to_edge_norm: " + buyers_closest_to_edge_norm;
+			
+			// Calculate SCORE-S-N
+			score_s_n <- buyers_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)
+																			 +(buyers_density_norm[each.key]*density_weight)
+																			 +(buyers_closest_to_edge_norm[each.key]*buyers_closest_to_edge_weight)
+			));
+			
+			write "score_s_n: " + score_s_n;
 			/*	
 			// Log to the database
 			loop buyer over: score_s_n.pairs {
