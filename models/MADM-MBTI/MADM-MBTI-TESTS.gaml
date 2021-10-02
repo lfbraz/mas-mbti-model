@@ -59,14 +59,30 @@ global {
 			set location <- myself.location + {-35, -5};
 		}
 		
-		create buyers number: 1 {
-			set location <- {25.0, 55.0};
-		}		
-		
 		// closer buyer
 		create buyers number: 1 {
 			set location <- {40, 30};
 		}	
+		
+		// isolated buyer
+		create buyers number: 1 {
+			set location <- {25.0, 55.0};
+		}		
+		
+		// less density cluster
+		create buyers number: 1 {
+			set location <- {5.0, 25.0};
+		}
+		
+		create buyers number: 1 {
+			set location <- {10.0, 28.0};
+		}
+		
+		create buyers number: 1 {
+			set location <- {5.0, 30.0};
+		}		
+		// end of less density cluster
+		
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -80,7 +96,7 @@ global {
 }
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
-	float viewdist_buyers <- 40.0;
+	float viewdist_buyers <- 30.0;
 	//float speed <- 20.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
@@ -403,8 +419,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			float density_weight;
 			float buyers_closest_to_edge_weight;
 			
-			density_weight <- self.is_sensing ? 0.2 : 0.4;
-			buyers_closest_to_edge_weight <- self.is_sensing ? 0.2 : 0.4;
+			density_weight <- self.is_sensing ? 0.1 : 0.25;
+			buyers_closest_to_edge_weight <- self.is_sensing ? 0.1 : 0.25;
 			distance_weight <- 1 - density_weight - buyers_closest_to_edge_weight; 			
 			
 			// Normalize density as a benefit attribute
