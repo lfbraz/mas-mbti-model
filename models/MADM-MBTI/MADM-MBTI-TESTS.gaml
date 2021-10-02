@@ -843,11 +843,13 @@ experiment MBTI type: gui benchmark: false  {
 						 do init(['Z','Z','F','P']);
 						 set location <- {40, 40};
 						 set viewdist_buyers <- 25.0;
+						 set color <- #red;
 						 }
 						 create sellers number: nbsellers {
 							 do init(['E','Z','Z','Z']);
 							 set location <- {35, 30};
 							 set viewdist_buyers <- 20.0;
+							 set color <- #purple;
 							 }
 						 }
 	
