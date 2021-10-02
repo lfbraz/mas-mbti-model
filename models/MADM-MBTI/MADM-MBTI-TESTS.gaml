@@ -57,7 +57,11 @@ global {
 		
 		create buyers number: 1 {
 			set location <- myself.location + {-35, -5};
-		}	
+		}
+		
+		create buyers number: 1 {
+			set location <- {25.0, 55.0};
+		}		
 		
 		// closer buyer
 		create buyers number: 1 {
@@ -139,6 +143,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	map<point, int> buyers_visited_in_cycle;
 	int number_of_cycles_to_return_visited_buyer <- 50;
 	int max_number_of_visit_to_a_visited_buyer <- 3;
+	
+	bool default_aspect_type <- true;
 	
 	action define_personality(list<string> mbti_personality){
 		E_I <- mbti_personality at 0;
@@ -608,7 +614,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			
 			// If is a perceiveing agent it has 80% probabability to recalcute the plan
 			bool must_recalculate_plan;
-			must_recalculate_plan <- !self.is_judging ? flip(0.8) : flip(0.2);			
+			must_recalculate_plan <- !self.is_judging ? flip(1.0) : flip(0.0);			
 			if(must_recalculate_plan and self.J_P contains_any ["J", "P"]){ do get_judging_perceiving_score(possible_buyers); }			
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
@@ -718,12 +724,13 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	aspect default {	  
 	  	
-	  draw circle(2) color: color;
+	  if(default_aspect_type){draw circle(2) color: color;} 
+	  else {draw square(2) color: color;}
 	  
 	  // enable view distance
 	  draw circle(viewdist_buyers) color:rgb(#yellow,0.5) border: #red;
 
-	  //if(is_extroverted){draw ("MBTI:E" ) color:#black size:4;}
+	  draw (my_personality) color:#black size:4 at:{location.x-3,location.y+3};
 	  
 	  //draw ("Agentes ao redor:" + count_people_around) color:#black size:4 at:{location.x,location.y+4};
 	  //draw ("Velocidade:" + speed) color:#black size:4 at:{location.x,location.y+2*4}; 
@@ -733,6 +740,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	  //draw ("curIntention:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+3*4};
 	  //draw ("possible_itens:" + get_current_intention()) color:#black size:4 at:{location.x,location.y+4*4}; 		
 	}
+	
+
 }
 
 
@@ -839,7 +848,7 @@ experiment MBTI type: gui benchmark: false  {
 							 }
 						 }
 	
-	user_command "Seller P" {create sellers number: nbsellers {
+	user_command "Seller P" {create sellers number: nbsellers{
 						 do init(['Z','Z','F','P']);
 						 set location <- {40, 40};
 						 set viewdist_buyers <- 25.0;
@@ -848,10 +857,10 @@ experiment MBTI type: gui benchmark: false  {
 						 create sellers number: nbsellers {
 							 do init(['E','Z','Z','Z']);
 							 set location <- {35, 30};
-							 set viewdist_buyers <- 20.0;
-							 set color <- #purple;
-							 }
+							 set default_aspect_type <- false;
+							 set viewdist_buyers <- 25.0;							 
 						 }
+					}
 	
 							 
 	user_command "Seller IN" {create sellers number: nbsellers {
