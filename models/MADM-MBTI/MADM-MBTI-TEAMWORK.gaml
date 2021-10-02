@@ -41,20 +41,19 @@ global {
 	geometry shape <- square(500);
 	// map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
 	// map<string, string> PARAMS_SQL <- ['host'::hostname, 'dbtype'::'sqlserver', 'database'::'TESTEDB', 'port'::'1433', 'user'::'gama_user', 'passwd'::'gama#123'];
-	//map<string, string> PARAMS <- ['host'::'localhost', 'dbtype'::'Postgres', 'database'::'gama_data', 'port'::'5432', 'user'::'postgres_user', 'passwd'::'gama#123'];
+	map<string, string> PARAMS <- ['host'::'localhost', 'dbtype'::'Postgres', 'database'::'gama_data', 'port'::'5432', 'user'::'postgres_user', 'passwd'::'gama#123'];
 	
 	init {
 		write "new simulation created: " + name;
 		
-		
 		create buyers number: nbbuyers;
 		write "Buyers: " + nbbuyers;
 		
-		/*
+		 
 		create sellers number: nbsellers {
 			do init(['E','S','F','J'] );
-		}		
-		 
+		}
+		
 		create sellers number: nbsellers {
 			do init(['E','S','F','P']);
 		}		
@@ -113,14 +112,6 @@ global {
 		
 		create sellers number: nbsellers {
 			do init(['I','N','T','P']);
-		}
-		*/
-		create sellers number: nbsellers {
-			do init(['E','N','T','P']);
-		}
-		
-		create sellers number: nbsellers {
-			do init(['I','N','F','P']);
 		}
 			
 	}
@@ -254,7 +245,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
-		// do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name];
+		 do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name];
 		
 		//do executeUpdate params: PARAMS updateComm: "TRUNCATE TABLE TB_SELLER_PRODUCTIVITY"; 
 		
@@ -599,7 +590,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}
 	}
 	
-	/* 
 	action persist_seller_action(buyers buyer_target, point location_target){		
 		// log into db the calculated score
 		do insert (params: PARAMS,
@@ -633,7 +623,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 							  world.seed
 					]);
 	}
-	  */
 	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
 	rule belief: new_predicate("location_buyer") new_desire: sell_item strength:10.0;
@@ -756,20 +745,20 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		
 		// Calculate score for S-N
 		map<buyers, float> buyers_s_n_score;
-		//buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
-		//if(!turn_off_time) {write "get_sensing_intuition_score: " + (end_time-start_time);}
+		buyers_s_n_score <- get_sensing_intuition_score(buyers_to_calculate);
+		if(!turn_off_time) {write "get_sensing_intuition_score: " + (end_time-start_time);}
 		
 		// Calculate score for T-F
 		map<buyers, float> buyers_t_f_score;
-		//buyers_t_f_score <- get_thinking_feeling_score(possible_buyers);		
-		//if(!turn_off_time) {write "get_thinking_feeling_score: " + (end_time-start_time);}
+		buyers_t_f_score <- get_thinking_feeling_score(possible_buyers);		
+		if(!turn_off_time) {write "get_thinking_feeling_score: " + (end_time-start_time);}
 		
 		// Sum all scores
 		map<buyers, float> buyers_score;
 		buyers_score <- map<buyers, float>(buyers_e_i_score.pairs collect (each.key::((each.value*weight_e_i) + 
 																					  (buyers_s_n_score[each.key]*weight_s_n) + 
 																					  (buyers_t_f_score[each.key]*weight_t_f))));
-		//if(!turn_off_time) {write "sum_all_scores: " + (end_time-start_time);}
+		if(!turn_off_time) {write "sum_all_scores: " + (end_time-start_time);}
 		
 		return buyers_score;
 	}
@@ -796,14 +785,20 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			map<buyers, float> max_buyer_score <- get_max_score(buyers_score);
 			
 			// Now find the target buyer from its location
-			target <- point(max_buyer_score.keys[0]);				
+			target <- point(max_buyer_score.keys[0]);
+			
+			// log into db the calculated score
+			//do insert (params: PARAMS,
+			//			into: "TB_TARGET",
+			//			columns: ["INTERACTION", "TYPE", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
+			//			values:  [steps, "ORIGINAL", self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);						
 		}
 		do remove_intention(define_buyer_target, true);
 	}
 	
 	aspect default {	  
 	  	
-	  draw circle(5) color: #green;
+	  draw circle(10) color: color;
 	  
 	  // enable view distance
 	  //draw circle(viewdist_buyers*2) color:rgb(#white,0.5) border: #red;
@@ -837,7 +832,7 @@ species buyers skills: [moving] schedules: []  {
 	aspect default {  
 	  //draw rectangle(30, 15) color: #orange at:{location.x,location.y-20};
 	  //draw (string(self.name)) color:#black size:4 at:{location.x-10,location.y-18};
-	  draw triangle(5) color: visited? #green : #blue  at:{location.x,location.y+20};
+	  draw circle(5) color: visited? #green : #blue  at:{location.x,location.y+20};
 	  //draw (string(self.qty_buyers)) color:#white size:4 at:{location.x-3,location.y+22}; 
 	  //draw buyer_icon size: 40;
 	}
@@ -858,10 +853,8 @@ experiment MBTI type: gui benchmark: false  {
 	//float seed <- 2017.0;
 	//float seed <- 2018.0;
 	
-	float seed <- 1985.0;
-	
-	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 8 among: [1,3,8,10,15,20];
-	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 500 among: [10,50,100,200,400,500, 1280, 6400, 24320];
+	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1 among: [1,3,5,10,15,20];
+	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 50 among: [10,50,100,200,400,500, 1280, 6400, 24320];
 	parameter "Disable time track" category:"General" var: turn_off_time <- true;
 	parameter "Disable personality change" category:"General" var: turn_off_personality_probability <- false;
 	
@@ -872,7 +865,7 @@ experiment MBTI type: gui benchmark: false  {
 	/** Insert here the definition of the input and output of the model */
 	output {
 		display map {
-			grid grille lines: #black;
+			grid grille lines: #darkgreen;
 			species sellers aspect:default;
 			species buyers aspect:default;
 		}
