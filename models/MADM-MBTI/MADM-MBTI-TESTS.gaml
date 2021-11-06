@@ -854,13 +854,14 @@ experiment MBTI type: gui benchmark: false  {
 	
 	user_command "Seller J" {create sellers number: nbsellers {
 						 do init(['Z','Z','F','J']);
-						 set location <- {40, 40};
+						 set location <- {40, 40};						 
 						 set viewdist_buyers <- 25.0;
 						 }
 						 create sellers number: nbsellers {
 							 do init(['E','Z','Z','Z']);
 							 set location <- {35, 30};
-							 set viewdist_buyers <- 20.0;
+							 set default_aspect_type <- false;
+							 set viewdist_buyers <- 25.0;
 							 }
 						 }
 	
