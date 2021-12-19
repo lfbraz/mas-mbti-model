@@ -277,7 +277,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//	do remove_belief(new_predicate("location_seller"));
 	//}
 	
-	// TODO: consider teamates
 	perceive target:sellers in: viewdist_buyers{
 		// We must validate that only our teammates would be considered (also remove the seller itself)
 		if(myself.name != self.name){
