@@ -16,13 +16,17 @@ global {
 	int nbbuyers;
 	string market_type;
 	string teams_personality;
-	
+
+	int nbitemstobuy;
+
 	bool turn_off_time;
 	bool turn_off_personality_probability;
 	list<point> visited_target;
 		
 	int steps <- 0;
 	int max_steps <- 5000;
+
+	list<point> all_no_demand_buyers;
 
 	//geometry shape <- square(10);
 	// map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
@@ -41,6 +45,10 @@ global {
 	reflex count{
 		write "Performing step: " + steps;
 		steps  <- steps + 1;
+	}
+	
+	reflex all_no_demand_buyers {
+		all_no_demand_buyers <- buyers where (each.my_current_demand = 0) collect point(each);
 	}
 }
 
@@ -207,12 +215,12 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
-	perceive target:buyers in: viewdist_buyers{
-		// Seller only focus on buyer if it wasn`t visited yet
-		//if(!self.visited){
+	perceive target:buyers in: viewdist_buyers {
+		// Seller only focus on buyer if it has demand
+		if(self.my_current_demand > 0){
 			focus id:"location_buyer" var:location;
 			ask myself {do remove_intention(wander, false);	}	
-		//}		
+		}		
 	}
 	
 	perceive target:sellers in: viewdist_buyers{
@@ -264,6 +272,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		buyers_to_remove <- (buyers_to_remove union buyers_within_limit.keys);
 		
 		remove all:buyers_to_remove from: list_of_points;
+		
+		// We remove all buyers with no demand
+		remove all:all_no_demand_buyers from: list_of_points;		
+		
 		return list_of_points;
 	}
 	
@@ -596,8 +608,9 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				got_buyer <- true;
 				
 				buyers current_buyer <- buyers first_with (target = each.location);
-				if current_buyer != nil{
-					ask current_buyer {visited <- true;}
+				if current_buyer != nil and current_buyer.my_current_demand > 0{
+					ask current_buyer {visited <- true; my_current_demand<-my_current_demand-1; write "my_current_demand: " + my_current_demand;}
+				
 					// Add number of visits to consider in E-I dichotomy
 					add current_buyer::num_visits_to_the_buyer[current_buyer] + 1 to:num_visits_to_the_buyer;
 					
@@ -717,13 +730,21 @@ species buyers skills: [moving] schedules: []  {
 	rgb color <- #blue;
 	float speed <- 3.0;
 	bool visited <- false;
+	int my_current_demand <- 0;
 	
-	//image_file buyer_icon <- image_file("../../includes/buyer.png");	
+	init{
+		my_current_demand <- nbitemstobuy;
+	}
+	
 	
 	aspect default {  
 	  //draw rectangle(30, 15) color: #orange at:{location.x,location.y-20};
 	  //draw (string(self.name)) color:#black size:4 at:{location.x-10,location.y-18};
-	  draw triangle(1) color: visited? #green : #blue  at:{location.x,location.y};
+	  
+	  
+	  //draw triangle(1) color: visited? #green : #blue  at:{location.x,location.y};
+	  draw triangle(1) color: my_current_demand=0? #red : #blue at:{location.x,location.y};
+	  
 	  //draw (string(self.qty_buyers)) color:#white size:4 at:{location.x,location.y}; 
 	  //draw buyer_icon size: 40;
 	}
@@ -749,6 +770,8 @@ experiment MBTI_Low type: gui benchmark: false  {
 	
 	int nbsellers <- 78;
 	int nbbuyers <- 313;
+	
+	int nbitemstobuy <- int(2344/nbbuyers);
 	
 	parameter "Supply and Demand" category:"Market" var: market_type <- "balanced" among: ["balanced", "supply > demand", "demand > supply"];
 	// TODO: Após os primeiros experimentos com times "Homogêneos fazer os times heterôgeneos
