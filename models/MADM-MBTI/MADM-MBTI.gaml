@@ -18,7 +18,8 @@ global {
 	string teams_personality;
 
 	int nbitemstobuy;
-
+	int nbitemstosell;
+	
 	bool turn_off_time;
 	bool turn_off_personality_probability;
 	list<point> visited_target;
@@ -48,6 +49,10 @@ global {
 	}
 	
 	reflex all_no_demand_buyers {
+		list buyers_demand <- list(buyers collect  (each.my_current_demand));
+		list sellers_demand <- list(sellers collect  (each.my_current_demand));
+		write "Demanda atual Buyers: " + sum(buyers_demand);
+		write "Demanda atual Sellers: " + sum(sellers_demand);
 		all_no_demand_buyers <- buyers where (each.my_current_demand = 0) collect point(each);
 	}
 }
@@ -57,7 +62,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//float speed <- 20.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
-
+	
+	// How many items the Seller can sell
+	int my_current_demand <- 0;
+	
 	// MBTI variables
 	string my_personality;
 	list my_real_personality;
@@ -114,7 +122,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	map<buyers, float> buyers_distance_norm_global;
 	
 	map<point, int> buyers_visited_in_cycle;
-	int number_of_cycles_to_return_visited_buyer <- 25;
+	int number_of_cycles_to_return_visited_buyer <- 75;
 	int max_number_of_visit_to_a_visited_buyer <- 3;
 	
 	bool default_aspect_type <- true;
@@ -182,6 +190,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	//at the creation of the agent, we add the desire to patrol (wander)
 	action init (list<string> mbti_personality)
 	{		
+        my_current_demand <- nbitemstosell;
         mbti_personality <- randomize_personality(mbti_personality);
         
         // write PARAMS_SQL;
@@ -609,7 +618,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				
 				buyers current_buyer <- buyers first_with (target = each.location);
 				if current_buyer != nil and current_buyer.my_current_demand > 0{
-					ask current_buyer {visited <- true; my_current_demand<-my_current_demand-1; write "my_current_demand: " + my_current_demand;}
+					// Update demand of the current buyer
+					ask current_buyer {visited <- true; my_current_demand <- my_current_demand-1;}
+					// Update demand of the current seller
+					my_current_demand <- my_current_demand-1;
+					// If there is no sellers' demand we kill the seller
+					if my_current_demand = 0 {
+						do die;
+					}
 				
 					// Add number of visits to consider in E-I dichotomy
 					add current_buyer::num_visits_to_the_buyer[current_buyer] + 1 to:num_visits_to_the_buyer;
@@ -772,6 +788,7 @@ experiment MBTI_Low type: gui benchmark: false  {
 	int nbbuyers <- 313;
 	
 	int nbitemstobuy <- int(2344/nbbuyers);
+	int nbitemstosell <- int(2344/nbsellers);
 	
 	parameter "Supply and Demand" category:"Market" var: market_type <- "balanced" among: ["balanced", "supply > demand", "demand > supply"];
 	// TODO: Após os primeiros experimentos com times "Homogêneos fazer os times heterôgeneos
