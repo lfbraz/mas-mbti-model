@@ -184,7 +184,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 		if my_mbti_personality[3] = 'R' {
 				my_mbti_personality[3] <- sample(["J", "P"], 1, false)[0];
-		}	
+		}
+		return my_mbti_personality;	
 	}
 
 	//at the creation of the agent, we add the desire to patrol (wander)
@@ -806,7 +807,8 @@ experiment MBTI_Low type: gui benchmark: false  {
 	user_command "E+random" {	
 								// Create Sellers	
 								create sellers number: nbsellers {
-							 	do init(['E','R','R','R']);}
+							 	//do init(['E','R','R','R']);}
+							 	do init(['I','S','T','P']);}
 							 
 							 	// Create Buyers
 								create buyers number: nbbuyers; 
