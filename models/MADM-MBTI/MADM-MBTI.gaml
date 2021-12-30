@@ -904,13 +904,13 @@ experiment Low_Gui type: gui benchmark: false autorun: true keep_seed: true {
 			nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand, 
 			scenario:: scenario, market_type::market_type
 		];
-		/*
-		 *
+		
 		create simulation with: [nbsellers:: nbsellers, nbbuyers:: nbbuyers, teams_mbti:: ['E','Z','Z','Z'], nbitemstobuy:: nbitemstobuy,
 			nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand,
 			scenario:: scenario, market_type::market_type
 		];
-		
+		/*
+		 *
 		 create simulation with: [nbsellers:: nbsellers, nbbuyers:: nbbuyers, teams_mbti:: ['E','S','R','R'], nbitemstobuy:: nbitemstobuy,
 			nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand,
 			scenario:: scenario, market_type::market_type
