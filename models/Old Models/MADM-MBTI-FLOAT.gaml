@@ -15,13 +15,16 @@ global {
 	int nbsellers;
 	int nbbuyers;
 
-	int total_sellers_demand;
+	float total_sellers_demand;
 	string market_type;
 	string teams_personality;
 
-	int nbitemstobuy;
-	int nbitemstosell;
+	float nbitemstobuy;
+	float nbitemstosell;
 
+	float inc_seller_demand;
+	float inc_buyer_demand; 
+	
 	bool turn_off_time;
 	bool turn_off_personality_probability;
 	list<point> visited_target;
@@ -39,8 +42,6 @@ global {
 	
 	init {
 		write "new simulation created: " + name;
-		list sellers_demand <- list(sellers collect  (each.my_current_demand));
-		write "Performance atual Sellers: " + (total_sellers_demand - sum(sellers_demand)) ;
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -56,8 +57,7 @@ global {
 		steps  <- steps + 1;
 	}
 	
-	/*
-	 reflex all_no_demand_buyers {
+	reflex all_no_demand_buyers {
 		list buyers_demand <- list(buyers collect  (each.my_current_demand));
 		list sellers_demand <- list(sellers collect  (each.my_current_demand));
 		write "Demanda atual Buyers: " + sum(buyers_demand);
@@ -66,17 +66,16 @@ global {
 		//all_no_demand_buyers <- buyers where (each.my_current_demand = 0) collect point(each);
 		write buyers(2).my_current_demand;
 	}
-	*/
 }
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
-	float viewdist_buyers <- 45.0;
+	float viewdist_buyers <- 15.0;
 	//float speed <- 20.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
 	
 	// How many items the Seller can sell
-	int my_current_demand <- 0;
+	float my_current_demand <- 0.0;
 	
 	// MBTI variables
 	string my_personality;
@@ -205,14 +204,15 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	{		
         write "Init: " + mbti_personality + " : " + nbitemstosell;
         my_current_demand <- nbitemstosell;
-        //write "My Current Demand " + self.name + " " + my_current_demand; 
+        write "My Current Demand " + self.name + " " + my_current_demand; 
         mbti_personality <- randomize_personality(mbti_personality);
         
         // write PARAMS_SQL;
         // write "Connection to SQL is " +  testConnection(PARAMS_SQL);
 		// set my personality
 		my_personality <- string(mbti_personality);
-		my_current_personality <- mbti_personality;		
+		my_current_personality <- mbti_personality;
+		
 		
 		// clean table
 		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
@@ -619,7 +619,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			do current_intention_on_hold(); 
 		} else {
 			
-			if (buyers(target).my_current_demand = 0){
+			if (buyers(target).my_current_demand = 0.0){
 				do remove_belief(new_predicate("location_buyer", ["location_value"::target]));				
 				
 				target <- nil;				
@@ -643,14 +643,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 					// Update demand of the current buyer
 					ask current_buyer {
 						visited <- true; 
-						my_current_demand <- my_current_demand-1;
+						my_current_demand <- my_current_demand-inc_buyer_demand;
 					}
 					
-					// Update demand of the current seller
-					my_current_demand <- my_current_demand-1;
+					// Update demand and performance of the current seller
+					my_current_demand <- my_current_demand-inc_seller_demand;
 					
 					// If there is no sellers' demand we kill the seller
-					if my_current_demand = 0 {
+					if my_current_demand = 0.0 {
 						do die;
 					}
 				
@@ -774,7 +774,7 @@ species buyers skills: [moving] schedules: []  {
 	rgb color <- #blue;
 	float speed <- 3.0;
 	bool visited <- false;
-	int my_current_demand <- 0;
+	float my_current_demand <- 0.0;
 	
 	init{
 		my_current_demand <- nbitemstobuy;
@@ -814,7 +814,9 @@ experiment MBTI_Low type: gui benchmark: false  {
 	float seed <- 1985.0;
 	
 	// Global Parameter
-	int total_items <- 4688;
+	int grid_size <- 15625; // 125 x 125
+	float items_rate <- 0.3;
+	float total_items <- grid_size * items_rate; // The grid size impact the number of items available
 	int cycles <- 250;
 	
 	// Low Scenario
@@ -822,8 +824,8 @@ experiment MBTI_Low type: gui benchmark: false  {
 	int nbbuyers <- 313;
 	
 	// Balanced Market
-	int sellersdemand <- round(total_items/2);
-	int buyersdemand <- round(total_items/2);
+	float sellersdemand <- total_items/2;
+	float buyersdemand <- total_items/2;
 	
 	// Supply > Demand
 	//float sellersdemand <- 3125;
@@ -838,10 +840,14 @@ experiment MBTI_Low type: gui benchmark: false  {
 	//int nbitemstosell <- round(sellersdemand/nbsellers);
 	
 	// Calculate the items according to the market
-	int nbitemstobuy <- round(buyersdemand/nbbuyers);
-	int nbitemstosell <- round(sellersdemand/nbsellers);
+	float nbitemstobuy <- buyersdemand/nbbuyers;
+	float nbitemstosell <- sellersdemand/nbsellers;
+	float incbuy <- nbitemstobuy/cycles;
+	float incsell <- nbitemstosell/cycles;
 		
 	parameter "Max Steps" var: max_steps <- cycles;
+	parameter "Increment Buyer" var: inc_buyer_demand <- incbuy;
+	parameter "Increment Seller" var: inc_seller_demand <- incsell;
 	parameter "Sellers Demand" category: "Market" var: total_sellers_demand <- sellersdemand;
 	
 	
