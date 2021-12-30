@@ -8,7 +8,7 @@
 model MBTI
 
 global {
-
+	float seed <- 1985.0;
 	list<string> teams_mbti;
 	
 	int iteration_number <- 1;
@@ -18,6 +18,7 @@ global {
 
 	int total_sellers_demand;
 	string market_type;
+	string scenario;
 
 	int nbitemstobuy;
 	int nbitemstosell;
@@ -50,9 +51,12 @@ global {
 	
 	reflex stop when:steps=max_steps{
 		list sellers_demand <- list(sellers collect  (each.my_current_demand));
-		write "Performance atual Sellers: " + (total_sellers_demand - sum(sellers_demand)) ;
-		list all_sellers <- list(sellers collect  (each));
-		write "Quantidade restante de Sellers: " + length(all_sellers);
+
+		write "PERFORMANCE: " + (total_sellers_demand - sum(sellers_demand))
+			  + " SCENARIO: " + scenario 
+			  + " MARKET_TYPE:" + market_type
+			  + " TEAMS MBTI: " + teams_mbti;
+		
 		do pause;	
 	}
 	
@@ -75,12 +79,13 @@ global {
 }
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
-	//float speed <- 20.0;
+	float seed <- 1985.0;
+	float speed <- 1.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
 	
 	// How many items the Seller can sell
-	int my_current_demand <- 0;
+	int my_current_demand;
 	
 	// MBTI variables
 	string my_personality;
@@ -145,15 +150,16 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	//at the creation of the agent, we add the desire to patrol (wander)
 	init
-	{		
+	{	
         // We must copy the global variable because the pointer issue
         list<string> mbti_personality <- copy(teams_mbti);
         
-        write "Init: " + teams_mbti + " : " + nbitemstosell;
-        my_current_demand <- nbitemstosell;
+        // write "Init: " + teams_mbti + " : " + nbitemstosell;
+        my_current_demand <- copy(nbitemstosell);
         //write "My Current Demand " + self.name + " " + my_current_demand; 
         mbti_personality <- randomize_personality(mbti_personality);        
-       
+        write "My personality: " + mbti_personality;
+        
         // write PARAMS_SQL;
         // write "Connection to SQL is " +  testConnection(PARAMS_SQL);
 		// set my personality
@@ -204,7 +210,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		T_F <- mbti_personality at 2;
 		J_P <- mbti_personality at 3;
 		
-		// An seller agent has 80% of probabability to keep its original MBTI personality
 		is_extroverted<- E_I = 'E' ? true : false;
 		is_sensing <- S_N =  'S' ? true : false;
 		is_thinking <- T_F =  'T' ? true : false;
@@ -220,7 +225,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	action randomize_personality (list<string> my_mbti_personality) {
-		write "Receiving : " + my_mbti_personality;
 		if my_mbti_personality[0] = 'R' {
 				my_mbti_personality[0] <- sample(["E", "I"], 1, false)[0];
 		}
@@ -236,7 +240,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		if my_mbti_personality[3] = 'R' {
 				my_mbti_personality[3] <- sample(["J", "P"], 1, false)[0];
 		}
-		write "Returning: " + my_mbti_personality;
 		return my_mbti_personality;	
 	}
 	
@@ -616,7 +619,6 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	plan letsWander intention:wander 
 	{
 		do wander amplitude: 60.0;
-		// speed: speed;
 	}
 	
 	// plan that has for goal to fulfill the "sell_item" desire
@@ -779,14 +781,14 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 }
 
 
-species buyers skills: [moving] schedules: []  {	
+species buyers skills: [moving] schedules: []  {
+	float seed <- 1985.0;	
 	rgb color <- #blue;
-	float speed <- 3.0;
 	bool visited <- false;
-	int my_current_demand <- 0;
+	int my_current_demand;
 	
 	init{
-		my_current_demand <- nbitemstobuy;
+		my_current_demand <- copy(nbitemstobuy);
 		// write "My Current Demand " + self.name + " " + my_current_demand;
 	}
 	
@@ -816,16 +818,17 @@ grid grille_high width: 100 height: 100 {
 	rgb color <- #white;
 }
 
-experiment MBTI_Low type: gui benchmark: false  {
+
+experiment Low_Batch type: gui {
 	float minimum_cycle_duration <- 0.00;
 	
 	// Random Seed Control
 	float seed <- 1985.0;
 	
 	// Global Parameter
-	int total_items <- 4688;
-	int cycles <- 250;
-	int view_dist <- 15;
+	int cycles <- 10;
+	int total_items <- 4688; // LOW
+	int view_dist <- 15; // LOW
 	
 	// Low Scenario
 	int nbsellers <- 78;
@@ -834,34 +837,103 @@ experiment MBTI_Low type: gui benchmark: false  {
 	// Balanced Market
 	int sellersdemand <- round(total_items/2);
 	int buyersdemand <- round(total_items/2);
-	
-	// Supply > Demand
-	//float sellersdemand <- 3125;
-	//int buyersdemand <- 1563;
-	//int nbitemstobuy <- round(buyersdemand/nbbuyers);
-	//int nbitemstosell <- round(sellersdemand/nbsellers);
-	
-	// Demand > Supply
-	//int sellersdemand <- 1563;
-	//int buyersdemand <- 3125;
-	//int nbitemstobuy <- round(buyersdemand/nbbuyers);
-	//int nbitemstosell <- round(sellersdemand/nbsellers);
+	string market_type <- "Balanced";
 	
 	// Calculate the items according to the market
 	int nbitemstobuy <- round(buyersdemand/nbbuyers);
 	int nbitemstosell <- round(sellersdemand/nbsellers);
 	
-	// MBTI personality of the team
+	string scenario <- "Low";
 	list<string> teams_mbti <-  ['E','R','R','R'];
+	
+	//string teams_mbti_b;
 	
 	parameter "Number of Sellers" var: nbsellers <- nbsellers;
 	parameter "Number of Buyers" var: nbbuyers <- nbbuyers;
 	parameter "Teams' MBTI" var: teams_mbti <- teams_mbti;
+	//parameter "parameter1" var: parameter1 init: 0; 				// the user defines the value of parameter predation_efficiency on the interface, the default value is 45, the minimum possible value is 1
+	
 	parameter "Number of items to buy" var: nbitemstobuy <- nbitemstobuy;
 	parameter "Number of items to sell" var: nbitemstosell <- nbitemstosell;
 	parameter "Max Steps" var: max_steps <- cycles;
 	parameter "View Distance" var: view_distance <- view_dist;
-	parameter "Sellers Demand" category: "Market" var: total_sellers_demand <- sellersdemand;
+	parameter "Scenario" var: scenario <- scenario;
+	parameter "Market Type" var: market_type <- market_type;
+	
+	parameter "Sellers Demand" category: "Market" var: total_sellers_demand <- sellersdemand;	
+	
+	output {
+		display map {
+			grid grille_low lines: #darkgreen;
+			species sellers aspect:default;
+			species buyers aspect:default;
+		}
+	}
+	
+}
+
+experiment Low_Gui type: gui benchmark: false autorun: true keep_seed: true {
+	float minimum_cycle_duration <- 0.00;
+	
+	// Random Seed Control
+	float seed <- 1985.0;
+	
+	// Global Parameter
+	int cycles <- 100;
+	int total_items <- 4688; // LOW
+	int view_dist <- 15; // LOW
+	
+	// Low Scenario
+	int nbsellers <- 3;
+	int nbbuyers <- 50;
+	
+	// Balanced Market
+	int sellersdemand <- round(total_items/2);
+	int buyersdemand <- round(total_items/2);
+	string market_type <- "Balanced";
+	
+	// Calculate the items according to the market
+	int nbitemstobuy <- round(buyersdemand/nbbuyers);
+	int nbitemstosell <- round(sellersdemand/nbsellers);
+	
+	string scenario <- "Low";
+	list<string> teams_mbti <-  ['E','R','R','R'];
+	
+	init {
+		create simulation with: [nbsellers:: nbsellers, nbbuyers:: nbbuyers, teams_mbti:: ['E','Z','Z','Z'], nbitemstobuy:: nbitemstobuy,
+			nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand, 
+			scenario:: scenario, market_type::market_type
+		];
+		/*
+		 *
+		create simulation with: [nbsellers:: nbsellers, nbbuyers:: nbbuyers, teams_mbti:: ['E','Z','Z','Z'], nbitemstobuy:: nbitemstobuy,
+			nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand,
+			scenario:: scenario, market_type::market_type
+		];
+		
+		 create simulation with: [nbsellers:: nbsellers, nbbuyers:: nbbuyers, teams_mbti:: ['E','S','R','R'], nbitemstobuy:: nbitemstobuy,
+			nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand,
+			scenario:: scenario, market_type::market_type
+		];		
+		create simulation with: [nbsellers:: nbsellers, nbbuyers:: nbbuyers, teams_mbti:: ['E','N','R','R'], nbitemstobuy:: nbitemstobuy,
+		nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand,
+		scenario:: scenario, market_type::market_type
+		];
+		create simulation with: [nbsellers:: nbsellers, nbbuyers:: nbbuyers, teams_mbti:: ['I','S','R','R'], nbitemstobuy:: nbitemstobuy,
+			nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand,
+			scenario:: scenario, market_type::market_type
+		];		
+		create simulation with: [nbsellers:: nbsellers, nbbuyers:: nbbuyers, teams_mbti:: ['I','N','R','R'], nbitemstobuy:: nbitemstobuy,
+		nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand,
+		scenario:: scenario, market_type::market_type
+		];
+		create simulation with: [nbsellers:: nbsellers, nbbuyers:: nbbuyers, teams_mbti:: ['R','R','R','R'], nbitemstobuy:: nbitemstobuy,
+		nbitemstosell:: nbitemstosell, max_steps:: cycles, view_distance:: view_dist, total_sellers_demand:: sellersdemand,
+		scenario:: scenario, market_type::market_type
+		];
+		* 
+		*/
+	}
 		
 	output {
 		display map {
@@ -869,7 +941,7 @@ experiment MBTI_Low type: gui benchmark: false  {
 			species sellers aspect:default;
 			species buyers aspect:default;
 		}
-	}	
+	}
 }
 
 
