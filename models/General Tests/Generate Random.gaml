@@ -8,17 +8,25 @@
 
 model GenerateRandom
 
+global {
+	list<string> teams_mbti <- ['R','R','R','R'];
+	init {
+		create random number: 10;
+	}
+}
+
 species random {
 
 list<string> mbti_personality;
 
 init {
-	mbti_personality <- ['E','R','R','R'];
-	
-	do randomize_personality(mbti_personality);	
+	write "teams_mbti: " + teams_mbti;
+	list<string> my_copy <- copy(teams_mbti);
+	mbti_personality <- randomize_personality(my_copy);
+	write mbti_personality;
 }
 
-action randomize_personality (list<string> my_mbti_personality) {
+list<string> randomize_personality (list<string> my_mbti_personality) {
 	if my_mbti_personality[0] = 'R' {
 			my_mbti_personality[0] <- sample(["E", "I"], 1, false)[0];
 	}
@@ -34,10 +42,12 @@ action randomize_personality (list<string> my_mbti_personality) {
 	if my_mbti_personality[3] = 'R' {
 			my_mbti_personality[3] <- sample(["J", "P"], 1, false)[0];
 	}	
+	return my_mbti_personality;
 }
 
 }
 
 experiment Attributes type: gui {
-	user_command "Generating Random" {create random;}
+	float seed <- 1985.0;
+
 }

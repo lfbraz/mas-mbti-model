@@ -9,7 +9,8 @@ model MBTI
 
 global {
 
-
+	list<string> teams_mbti;
+	
 	int iteration_number <- 1;
 
 	int nbsellers;
@@ -17,11 +18,12 @@ global {
 
 	int total_sellers_demand;
 	string market_type;
-	string teams_personality;
 
 	int nbitemstobuy;
 	int nbitemstosell;
-
+	
+	int view_distance;
+	
 	bool turn_off_time;
 	bool turn_off_personality_probability;
 	list<point> visited_target;
@@ -38,9 +40,12 @@ global {
 	// map<string, string> PARAMS <- ['host'::'localhost', 'dbtype'::'Postgres', 'database'::'gama_data', 'port'::'5432', 'user'::'postgres_user', 'passwd'::'gama#123'];
 	
 	init {
-		write "new simulation created: " + name;
-		list sellers_demand <- list(sellers collect  (each.my_current_demand));
-		write "Performance atual Sellers: " + (total_sellers_demand - sum(sellers_demand)) ;
+		write "New simulation created: " + name + " for the Teams' Personality: " + teams_mbti;
+		write "Number of Sellers: " + nbsellers + " / Buyers: " + nbbuyers;
+		write "View Distance: " + view_distance;
+		
+		create sellers number: nbsellers;		
+		create buyers number: nbbuyers;
 	}
 	
 	reflex stop when:steps=max_steps{
@@ -70,7 +75,6 @@ global {
 }
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
-	float viewdist_buyers <- 45.0;
 	//float speed <- 20.0;
 	int count_people_around <- 0 ;
 	bool got_buyer <- false;
@@ -139,6 +143,40 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
 	bool default_aspect_type <- true;
 	
+	//at the creation of the agent, we add the desire to patrol (wander)
+	init
+	{		
+        // We must copy the global variable because the pointer issue
+        list<string> mbti_personality <- copy(teams_mbti);
+        
+        write "Init: " + teams_mbti + " : " + nbitemstosell;
+        my_current_demand <- nbitemstosell;
+        //write "My Current Demand " + self.name + " " + my_current_demand; 
+        mbti_personality <- randomize_personality(mbti_personality);        
+       
+        // write PARAMS_SQL;
+        // write "Connection to SQL is " +  testConnection(PARAMS_SQL);
+		// set my personality
+		my_personality <- string(mbti_personality);
+		my_current_personality <- mbti_personality;		
+		
+		// clean table
+		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
+		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
+		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
+		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
+		
+		// do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name];
+		
+		//do executeUpdate params: PARAMS updateComm: "TRUNCATE TABLE TB_SELLER_PRODUCTIVITY"; 
+		
+		//do define_personality(mbti_personality);
+		do define_personality_without_prob(mbti_personality);
+
+		// Begin to wander
+		do add_desire(wander);
+	}
+	
 	action define_personality(list<string> mbti_personality){
 		E_I <- mbti_personality at 0;
 		S_N <- mbti_personality at 1;
@@ -182,6 +220,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	action randomize_personality (list<string> my_mbti_personality) {
+		write "Receiving : " + my_mbti_personality;
 		if my_mbti_personality[0] = 'R' {
 				my_mbti_personality[0] <- sample(["E", "I"], 1, false)[0];
 		}
@@ -197,38 +236,8 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		if my_mbti_personality[3] = 'R' {
 				my_mbti_personality[3] <- sample(["J", "P"], 1, false)[0];
 		}
+		write "Returning: " + my_mbti_personality;
 		return my_mbti_personality;	
-	}
-
-	//at the creation of the agent, we add the desire to patrol (wander)
-	action init (list<string> mbti_personality)
-	{		
-        write "Init: " + mbti_personality + " : " + nbitemstosell;
-        my_current_demand <- nbitemstosell;
-        //write "My Current Demand " + self.name + " " + my_current_demand; 
-        mbti_personality <- randomize_personality(mbti_personality);
-        
-        // write PARAMS_SQL;
-        // write "Connection to SQL is " +  testConnection(PARAMS_SQL);
-		// set my personality
-		my_personality <- string(mbti_personality);
-		my_current_personality <- mbti_personality;		
-		
-		// clean table
-		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_E_I";
-		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_S_N";
-		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SCORE_T_F";
-		//do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_TARGET";
-		
-		// do executeUpdate params: PARAMS updateComm: "DELETE FROM TB_SELLER_PRODUCTIVITY WHERE EXPERIMENT_NAME=?" values: [world.name];
-		
-		//do executeUpdate params: PARAMS updateComm: "TRUNCATE TABLE TB_SELLER_PRODUCTIVITY"; 
-		
-		//do define_personality(mbti_personality);
-		do define_personality_without_prob(mbti_personality);
-
-		// Begin to wander
-		do add_desire(wander);
 	}
 	
 	// We use the param each cycle to know when to use the define_personality function 
@@ -238,7 +247,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
-	perceive target:buyers in: viewdist_buyers {
+	perceive target:buyers in: view_distance {
 		// Seller only focus on buyer if it has demand
 		if(self.my_current_demand > 0){
 			focus id:"location_buyer" var:location;
@@ -246,7 +255,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		}		
 	}
 	
-	perceive target:sellers in: viewdist_buyers{
+	perceive target:sellers in: view_distance{
 		// We must validate that only our teammates would be considered (also remove the seller itself)
 		if(myself.name != self.name){
 			focus id:"location_seller" var:location;
@@ -816,6 +825,7 @@ experiment MBTI_Low type: gui benchmark: false  {
 	// Global Parameter
 	int total_items <- 4688;
 	int cycles <- 250;
+	int view_dist <- 15;
 	
 	// Low Scenario
 	int nbsellers <- 78;
@@ -840,93 +850,26 @@ experiment MBTI_Low type: gui benchmark: false  {
 	// Calculate the items according to the market
 	int nbitemstobuy <- round(buyersdemand/nbbuyers);
 	int nbitemstosell <- round(sellersdemand/nbsellers);
-		
+	
+	// MBTI personality of the team
+	list<string> teams_mbti <-  ['E','R','R','R'];
+	
+	parameter "Number of Sellers" var: nbsellers <- nbsellers;
+	parameter "Number of Buyers" var: nbbuyers <- nbbuyers;
+	parameter "Teams' MBTI" var: teams_mbti <- teams_mbti;
+	parameter "Number of items to buy" var: nbitemstobuy <- nbitemstobuy;
+	parameter "Number of items to sell" var: nbitemstosell <- nbitemstosell;
 	parameter "Max Steps" var: max_steps <- cycles;
+	parameter "View Distance" var: view_distance <- view_dist;
 	parameter "Sellers Demand" category: "Market" var: total_sellers_demand <- sellersdemand;
-	
-	
+		
 	output {
 		display map {
 			grid grille_low lines: #darkgreen;
 			species sellers aspect:default;
 			species buyers aspect:default;
 		}
-	}
-	
-
-	user_command "E+random" {	
-								write nbsellers;
-								// Create Sellers	
-								create sellers number: nbsellers {
-							 	do init(['E','R','R','R']);}							 	
-							 
-							 	// Create Buyers
-								create buyers number: nbbuyers; 
-								
-								list buyers_demand <- list(buyers collect  (each.my_current_demand));
-								list sellers_demand <- list(sellers collect  (each.my_current_demand));
-								write "Demanda atual Buyers: " + sum(buyers_demand);
-								write "Demanda atual Sellers: " + sum(sellers_demand);
-								write "Performance atual Sellers: " + (total_sellers_demand - sum(sellers_demand)) ;								
-							 }
-							 
-	user_command "I+random" {	
-								// Create Sellers	
-								create sellers number: nbsellers {
-							 	do init(['I','R','R','R']);}							 	
-							 
-							 	// Create Buyers
-								create buyers number: nbbuyers; 
-							}
-	
-	user_command "ES+random" {	
-								// Create Sellers	
-								create sellers number: nbsellers {
-							 	do init(['E','S','R','R']);}							 	
-							 
-							 	// Create Buyers
-								create buyers number: nbbuyers; 
-							}
-
-	user_command "EN+random" {	
-								// Create Sellers	
-								create sellers number: nbsellers {
-							 	do init(['E','N','R','R']);}							 	
-							 
-							 	// Create Buyers
-								create buyers number: nbbuyers; 
-							}
-	
-	user_command "IS+random" {	
-								// Create Sellers	
-								create sellers number: nbsellers {
-							 	do init(['I','S','R','R']);}							 	
-							 
-							 	// Create Buyers
-								create buyers number: nbbuyers; 
-							}
-
-	user_command "IN+random" {	
-								// Create Sellers	
-								create sellers number: nbsellers {
-							 	do init(['I','N','R','R']);}							 	
-							 
-							 	// Create Buyers
-								create buyers number: nbbuyers; 
-							}
-	
-
-	
-	user_command "random" {	
-								// Create Sellers	
-								create sellers number: nbsellers {
-							 	do init(['R','R','R','R']);}							 	
-							 
-							 	// Create Buyers
-								create buyers number: nbbuyers; 
-							}
-	
-	
+	}	
 }
 
 
