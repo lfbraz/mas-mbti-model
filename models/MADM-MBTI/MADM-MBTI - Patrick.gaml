@@ -8,7 +8,6 @@
 model MBTI
 
 global {
-	float seedValue;
 	
 	list<string> teams_mbti;
 	string teams_mbti_string <- "";
@@ -70,7 +69,6 @@ global {
 	}
 	
 	init {
-		seed <- seedValue;
 		write "total_items: " + total_items;
 		do calculate_market_items();
 		write "total_sellers_demand: " + total_sellers_demand;
@@ -855,15 +853,15 @@ grid grille_high width: 100 height: 100 {
 }
 
 
-experiment LOW_SCENARIO_TEST type: gui benchmark: false autorun: false keep_seed: true {
+experiment LOW_SCENARIO type: gui benchmark: false autorun: false keep_seed: true {
 	float minimum_cycle_duration <- 0.00;
 	
 	// Random Seed Control
 	float seedValue <- 1985.0 with_precision 1;
-	float seed <- seedValue;
+	//float seed <- seedValue;
 	
 	// Global Parameter
-	int cycles <- 100;
+	int cycles <- 250;
 	int total_items <- 4688; // LOW
 	int view_dist <- 15; // LOW
 	
@@ -873,42 +871,20 @@ experiment LOW_SCENARIO_TEST type: gui benchmark: false autorun: false keep_seed
 	
 	string scenario <- "Low";
 	
-	parameter "Number of Sellers" var: nbsellers <- nbsellers;
-	parameter "Number of Buyers" var: nbbuyers <- nbbuyers;
-	parameter "Teams Personality" var: teams_mbti_string <- "E,R,R,R";
-	parameter "Total Items" var: total_items <- total_items;
-	parameter "Items to Sell" var: nbitemstosell <- nbitemstosell;
-	parameter "Max Steps" var: max_steps <- cycles;
-	parameter "View Distance" var: view_distance <- view_dist;
-	parameter "Total Sellers Demand" var: total_sellers_demand;
-	parameter "Scenario" var: scenario <- scenario;
-	parameter "Market Type" var: market_type <- "Balanced";
-	parameter "Seed" var: seedValue <- seedValue;
-	
-	/* 
-	init {
-		create simulation with: [seedValue::seedValue, 
-								 nbsellers::nbsellers, 
-								 nbbuyers::nbbuyers, 
-								 teams_mbti_string::"E,R,R,R", 
-								 total_items::total_items,
-								 nbitemstosell::nbitemstosell,
-								 max_steps::cycles,
-								 view_distance::view_dist,
-								 scenario::scenario,
-								 market_type::"Demand>Supply"];
-		create simulation with: [seedValue::seedValue, 
-								 nbsellers::nbsellers, 
-								 nbbuyers::nbbuyers, 
-								 teams_mbti_string::"E,R,R,R", 
-								 total_items::total_items,
-								 nbitemstosell::nbitemstosell,
-								 max_steps::cycles,
-								 view_distance::view_dist,
-								 scenario::scenario,
-								 market_type::"Demand>Supply"];
+	action _init_ {
+		create simulation with: (
+			nbsellers:nbsellers,
+			nbbuyers:nbbuyers,
+			teams_mbti_string: "E,R,R,R",
+			total_items: total_items,
+			nbitemstosell: nbitemstosell,
+			max_steps: cycles,
+			view_distance: view_dist,
+			scenario:scenario,
+			market_type:"Balanced",
+			seed: seedValue
+		);
 	}
-	*/
 	output {
 		display map {
 			grid grille_low lines: #darkgreen;

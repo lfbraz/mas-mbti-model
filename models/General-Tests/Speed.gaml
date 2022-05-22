@@ -9,6 +9,7 @@ global {
 
 species my_species skills:[moving] {
     float my_speed <- 1.00 with_precision 2; 
+    float r_speed <- real_speed with_precision 2;
     
     reflex update {
         do wander speed: my_speed;

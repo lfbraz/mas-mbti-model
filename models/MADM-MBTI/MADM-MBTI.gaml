@@ -8,7 +8,7 @@
 model MBTI
 
 global {
-	float seedValue <- 1985.0 with_precision 1;
+	float seedValue <- 0;
 	
 	list<string> teams_mbti;
 	string teams_mbti_string <- "";
@@ -47,8 +47,18 @@ global {
 	action calculate_market_items {		
 		
 		if (market_type="Balanced"){
-			total_sellers_demand <- round(total_items/2);
-			total_buyers_demand <- round(total_items/2);			
+			total_sellers_demand <- (total_items/2);
+			total_buyers_demand <- (total_items/2);			
+		}
+		
+		if (market_type="Supply>Demand"){
+			total_sellers_demand <- ((2/3) * total_items);
+			total_buyers_demand <- (total_items-total_sellers_demand);			
+		}
+		
+		if (market_type="Demand>Supply"){
+			total_buyers_demand <- ((2/3) * total_items);
+			total_sellers_demand  <- (total_items-total_buyers_demand);			
 		}
 			
 		// Calculate the items according to the market
@@ -60,13 +70,14 @@ global {
 	}
 	
 	init {
+		seed <- seedValue;
 		write "total_items: " + total_items;
 		do calculate_market_items();
 		write "total_sellers_demand: " + total_sellers_demand;
 		
 		teams_mbti <- list(teams_mbti_string split_with ",");
 		write teams_mbti;
-		seed <- seedValue;
+		//seed <- seedValue;
 		write "New simulation created: " + name + " for the Teams' Personality: " + teams_mbti;
 		write "Number of Sellers: " + nbsellers + " / Buyers: " + nbbuyers;
 		write "View Distance: " + view_distance;
@@ -81,24 +92,25 @@ global {
 		write "PERFORMANCE: " + (total_sellers_demand - sum(sellers_demand))
 			  + " SCENARIO: " + scenario 
 			  + " MARKET_TYPE:" + market_type
-			  + " TEAMS MBTI: " + teams_mbti;
+			  + " TEAMS MBTI: " + teams_mbti
+			  + " SEED: " + seed;
 		
 		do pause;	
 	}
 	
 	reflex count{
-		write "Performing step: " + steps;
+		//write "Performing step: " + steps;
 		steps  <- steps + 1;
 	}
 	
 	
-	 reflex all_no_demand_buyers {
+	 //reflex all_no_demand_buyers {
 		//list buyers_demand <- list(buyers collect  (each.my_current_demand));
-		list sellers_demand <- list(sellers collect  (each.my_current_demand));
+		//list sellers_demand <- list(sellers collect  (each.my_current_demand));
 		//write "Demanda atual Buyers: " + sum(buyers_demand);
 		//write "Demanda atual Sellers: " + sum(sellers_demand);
-		write "Performance atual Sellers: " + (total_sellers_demand - sum(sellers_demand)) ;
-	}
+		//write "Performance atual Sellers: " + (total_sellers_demand - sum(sellers_demand)) ;
+	//}
 	
 }
 
@@ -783,9 +795,13 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	}
 	
 	aspect default {	  
-	  	
-	  if(default_aspect_type){draw circle(1) color: color;} 
-	  else {draw square(2) color: color;}
+	  
+  	image_file buyer_icon <- image_file("../../includes/seller.png");	
+  	  	
+	  //if(default_aspect_type){draw circle(1) color: color;} 
+	  //else {draw square(2) color: color;}
+
+	  if(default_aspect_type){draw buyer_icon size: 4; }	
 	  
 	  // enable view distance
 	  // draw circle(viewdist_buyers) color:rgb(#yellow,0.5) border: #red;
@@ -807,7 +823,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 
 
 species buyers skills: [moving] schedules: []  {
-	rgb color <- #blue;
+	rgb color <- #green;
 	bool visited <- false;
 	int my_current_demand;
 	
@@ -823,14 +839,14 @@ species buyers skills: [moving] schedules: []  {
 	  
 	  
 	  //draw triangle(1) color: visited? #green : #blue  at:{location.x,location.y};
-	  draw triangle(1) color: my_current_demand=0? #red : #blue at:{location.x,location.y};
+	  draw triangle(3) color: my_current_demand=0? #red : color at:{location.x,location.y};
 	  
 	  //draw (string(self.qty_buyers)) color:#white size:4 at:{location.x,location.y}; 
 	  //draw buyer_icon size: 40;
 	}
 }
 
-grid grille_low width: 100 height: 100 {
+grid grille_low width: 10 height: 10 {
 	rgb color <- #white;
 }
 
@@ -847,34 +863,39 @@ experiment LOW_SCENARIO type: gui benchmark: false autorun: false keep_seed: tru
 	float minimum_cycle_duration <- 0.00;
 	
 	// Random Seed Control
-	float seedValue <- 1985.0 with_precision 1;
-	float seed <- seedValue;
+	float seedValue <- 2014.0 with_precision 1;
+	//float seed <- seedValue;
 	
 	// Global Parameter
-	int cycles <- 2;
-	int total_items <- 4688; // LOW
+	int cycles <- 250;
+	int total_items <- 1000; // LOW
 	int view_dist <- 15; // LOW
 	
 	// Low Scenario
-	int nbsellers <- 78;
-	int nbbuyers <- 313;
+	int nbsellers <- 10;
+	int nbbuyers <- 50;
 	
 	string scenario <- "Low";
 	
+	int nbitemstosell <- 500;
+	int nbitemstobuy <- 500; 
+	
 	parameter "Number of Sellers" var: nbsellers <- nbsellers;
 	parameter "Number of Buyers" var: nbbuyers <- nbbuyers;
-	parameter "Teams Personality" var: teams_mbti_string <- "E,R,R,R";
-	parameter "Total Items" var: total_items <- total_items;
-	parameter "Items to Sell" var: nbitemstosell <- nbitemstosell;
-	parameter "Max Steps" var: max_steps <- cycles;
-	parameter "View Distance" var: view_distance <- view_dist;
-	parameter "Total Sellers Demand" var: total_sellers_demand;
-	parameter "Scenario" var: scenario <- scenario;
+	parameter "Teams Personality" var: teams_mbti_string <- "I,R,R,R";
+	parameter "Total Products" var: total_items <- total_items;
+	parameter "Number of Products to Sell" var: nbitemstosell <- nbitemstosell;
+	parameter "Number of Products to Buy" var: nbitemstobuy <- nbitemstobuy;
+	//parameter "Total Sellers Demand" var: total_sellers_demand;
+	parameter "Max Cycles" var: max_steps <- cycles;
+	parameter "View Distance (Perception Radius)" var: view_distance <- view_dist;	
+	//parameter "Scenario" var: scenario <- scenario;
 	parameter "Market Type" var: market_type <- "Balanced";
+	parameter "Seed" var: seedValue <- seedValue;
 	
 	output {
 		display map {
-			grid grille_low lines: #darkgreen;
+			grid grille_low lines: #gray;
 			species sellers aspect:default;
 			species buyers aspect:default;
 		}
