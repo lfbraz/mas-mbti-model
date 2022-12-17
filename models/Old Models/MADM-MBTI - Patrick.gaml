@@ -8,7 +8,6 @@
 model MBTI
 
 global {
-	float seedValue <- 0;
 	
 	list<string> teams_mbti;
 	string teams_mbti_string <- "";
@@ -38,9 +37,7 @@ global {
 	int max_steps;
 
 	list<point> all_no_demand_buyers;
-	
-	// Testing git interface from gama
-	
+
 	// map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
 	// map<string, string> PARAMS_SQL <- ['host'::hostname, 'dbtype'::'sqlserver', 'database'::'TESTEDB', 'port'::'1433', 'user'::'gama_user', 'passwd'::'gama#123'];
 
@@ -72,7 +69,6 @@ global {
 	}
 	
 	init {
-		seed <- seedValue;
 		write "total_items: " + total_items;
 		do calculate_market_items();
 		write "total_sellers_demand: " + total_sellers_demand;
@@ -115,7 +111,6 @@ global {
 	//}
 	
 }
-
 
 species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 	
@@ -402,6 +397,37 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			// Calculate SCORE-E-I
 			score_e_i <- buyers_distance_norm_global.pairs as_map (each.key::each.value+(num_visits_to_the_buyer_norm[each.key]));
 			
+			/* 
+			// Log to the database
+			loop buyer over: score_e_i.pairs {			
+				// log into db the calculated score
+				do insert (params: PARAMS,
+								into: "TB_SCORE_E_I",
+								columns: ["INTERACTION", 
+										  "SELLER_NAME", 
+										  "MBTI_SELLER", 
+										  "DISTANCE_TO_BUYER", 
+										  "NUMBER_OF_PEOPLE_AT_BUYER", 
+										  "BUYER_NAME",
+										  "IS_EXTROVERTED",
+										  "SCORE_DISTANCE",
+				                          "SCORE_QTY_BUYERS",
+										  "SCORE"],
+								values:  [steps, 
+										  self.name, 
+										  self.my_personality, 
+										  buyers_distance_to_me[buyer.key], 
+										  buyers(buyer.key).qty_buyers, 
+										  buyers(buyer.key).name,
+										  int(self.is_extroverted),
+										  buyers_distance_norm[buyer.key],
+										  buyers_size_norm[buyer.key],
+										  buyer.value
+								]);								
+								
+			}		
+			*/
+			
 			return score_e_i;	
 		}
 	}	
@@ -463,7 +489,34 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 																			 +(buyers_density_norm[each.key]*density_weight)
 																			 +(buyers_closest_to_edge_norm[each.key]*buyers_closest_to_edge_weight)
 			));
-		
+
+			/*	
+			// Log to the database
+			loop buyer over: score_s_n.pairs {
+				// log into db the calculated score
+				do insert (params: PARAMS,
+							into: "TB_SCORE_S_N",
+							columns: ["INTERACTION", 
+									  "SELLER_NAME", 
+									  "MBTI_SELLER", 
+									  "CLUSTER_DENSITY",
+									  "DISTANCE_TO_BUYER",
+									  "BUYER_NAME",
+									  "SCORE_DISTANCE",
+									  "SCORE_DENSITY", 
+									  "SCORE"],
+							values:  [steps, 
+									  self.name, 
+									  self.my_personality, 
+									  buyers_density[buyer.key],
+									  buyers_distance_to_me[buyer.key], 
+									  buyers(buyer.key).name,
+									  buyers_distance_norm[buyer.key],
+									  buyers_density_norm[buyer.key], 
+									  buyer.value
+									]);	
+			}
+			*/		
 		}
 
 		return score_s_n;		
@@ -501,6 +554,34 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		// Calculate SCORE-T-F
 		score_t_f <- buyers_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)+(num_sellers_close_to_buyer_norm[each.key]*sellers_close_to_buyer_weight)));
 
+		/*
+		// Log to the database
+			loop buyer over: score_t_f.pairs {
+				// log into db the calculated score
+				do insert (params: PARAMS,
+							into: "TB_SCORE_T_F",
+							columns: ["INTERACTION", 
+									  "SELLER_NAME", 
+									  "MBTI_SELLER", 
+									  "NUM_SELLERS_CLOSE_TO_BUYER",
+									  "DISTANCE_TO_BUYER",
+									  "BUYER_NAME",
+									  "SCORE_DISTANCE",
+									  "SCORE_SELLER_CLOSE_TO_BUYER", 
+									  "SCORE"],
+							values:  [steps, 
+									  self.name, 
+									  self.my_personality, 
+									  num_sellers_close_to_buyer[buyer.key],
+									  buyers_distance_to_me[buyer.key], 
+									  buyers(buyer.key).name,
+									  buyers_distance_norm[buyer.key],
+									  num_sellers_close_to_buyer_norm[buyer.key], 
+									  buyer.value
+									]);		
+			}
+			*/
+		
 		return score_t_f;		
 	}
 	
@@ -516,10 +597,54 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 				// write "HAS CHANGED THE TARGET";
 				// If the target has changed seller must move to this new direction
 				target <- new_target;			
-				do goto target: target;			
+				do goto target: target;
+				
+				/* 			
+				// log into db the calculated score
+				do insert (params: PARAMS,
+							into: "TB_TARGET",
+							columns: ["INTERACTION", "TYPE", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
+							values:  [steps, "NEW TARGET (J-P)", self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);		
+				*/
 			}	
 		}
 	}
+	
+	/* 
+	action persist_seller_action(buyers buyer_target, point location_target){		
+		// log into db the calculated score
+		do insert (params: PARAMS,
+					into: "TB_SELLER_PRODUCTIVITY",
+					columns: ["INTERACTION",  
+							  "SELLER_NAME", 
+							  "SELLER_ORIGINAL_MBTI", 
+							  "SELLER_REAL_MBTI", 
+							  "BUYER_TARGET", 
+							  "LOCATION_TARGET", 
+							  "IS_EXTROVERTED", 
+							  "IS_SENSING", 
+							  "IS_THINKING", 
+							  "IS_JUDGING",
+							  "NUMBER_OF_VISITED_BUYERS",
+							  "EXPERIMENT_NAME",
+							  "SEED"
+							  ],
+					values:  [steps, 
+							  self.name, 
+							  self.my_personality, 
+							  string(self.my_real_personality), 
+							  buyer_target, 
+							  location_target, 
+							  int(is_extroverted), 
+							  int(is_sensing), 
+							  int(is_thinking), 
+							  int(is_judging),
+							  0,
+							  world.name,
+							  world.seed
+					]);
+	}
+	*/
 	  
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.
 	rule belief: new_predicate("location_buyer") new_desire: sell_item strength:10.0;
@@ -657,19 +782,20 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			
 			// Now find the target buyer from its location
 			target <- point(max_buyer_score.keys[0]);
-		
+			
+			// log into db the calculated score
+			//do insert (params: PARAMS,
+			//			into: "TB_TARGET",
+			//			columns: ["INTERACTION", "TYPE", "SELLER_NAME", "MBTI_SELLER", "BUYER_TARGET", "SCORE"],
+			//			values:  [steps, "ORIGINAL", self.name, self.my_personality, max_buyer_score.keys[0], max_buyer_score.values[0]]);						
 		}
 		do remove_intention(define_buyer_target, true);
 	}
 	
 	aspect default {	  
-	  
-  	image_file buyer_icon <- image_file("../../includes/seller.png");	
-  	  	
-	  //if(default_aspect_type){draw circle(1) color: color;} 
-	  //else {draw square(2) color: color;}
-
-	  if(default_aspect_type){draw buyer_icon size: 4; }	
+	  	
+	  if(default_aspect_type){draw circle(1) color: color;} 
+	  else {draw square(2) color: color;}
 	  
 	  // enable view distance
 	  // draw circle(viewdist_buyers) color:rgb(#yellow,0.5) border: #red;
@@ -691,7 +817,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 
 
 species buyers skills: [moving] schedules: []  {
-	rgb color <- #green;
+	rgb color <- #blue;
 	bool visited <- false;
 	int my_current_demand;
 	
@@ -707,14 +833,14 @@ species buyers skills: [moving] schedules: []  {
 	  
 	  
 	  //draw triangle(1) color: visited? #green : #blue  at:{location.x,location.y};
-	  draw triangle(3) color: my_current_demand=0? #red : color at:{location.x,location.y};
+	  draw triangle(1) color: my_current_demand=0? #red : #blue at:{location.x,location.y};
 	  
 	  //draw (string(self.qty_buyers)) color:#white size:4 at:{location.x,location.y}; 
 	  //draw buyer_icon size: 40;
 	}
 }
 
-grid grille_low width: 10 height: 10 {
+grid grille_low width: 100 height: 100 {
 	rgb color <- #white;
 }
 
@@ -731,39 +857,37 @@ experiment LOW_SCENARIO type: gui benchmark: false autorun: false keep_seed: tru
 	float minimum_cycle_duration <- 0.00;
 	
 	// Random Seed Control
-	float seedValue <- 2014.0 with_precision 1;
+	float seedValue <- 1985.0 with_precision 1;
 	//float seed <- seedValue;
 	
 	// Global Parameter
 	int cycles <- 250;
-	int total_items <- 1000; // LOW
+	int total_items <- 4688; // LOW
 	int view_dist <- 15; // LOW
 	
 	// Low Scenario
-	int nbsellers <- 10;
-	int nbbuyers <- 50;
+	int nbsellers <- 78;
+	int nbbuyers <- 313;
 	
 	string scenario <- "Low";
 	
-	int nbitemstosell <- 500;
-	int nbitemstobuy <- 500; 
-	
-	parameter "Number of Sellers" var: nbsellers <- nbsellers;
-	parameter "Number of Buyers" var: nbbuyers <- nbbuyers;
-	parameter "Teams Personality" var: teams_mbti_string <- "I,R,R,R";
-	parameter "Total Products" var: total_items <- total_items;
-	parameter "Number of Products to Sell" var: nbitemstosell <- nbitemstosell;
-	parameter "Number of Products to Buy" var: nbitemstobuy <- nbitemstobuy;
-	//parameter "Total Sellers Demand" var: total_sellers_demand;
-	parameter "Max Cycles" var: max_steps <- cycles;
-	parameter "View Distance (Perception Radius)" var: view_distance <- view_dist;	
-	//parameter "Scenario" var: scenario <- scenario;
-	parameter "Market Type" var: market_type <- "Balanced";
-	parameter "Seed" var: seedValue <- seedValue;
-	
+	action _init_ {
+		create simulation with: (
+			nbsellers:nbsellers,
+			nbbuyers:nbbuyers,
+			teams_mbti_string: "E,R,R,R",
+			total_items: total_items,
+			nbitemstosell: nbitemstosell,
+			max_steps: cycles,
+			view_distance: view_dist,
+			scenario:scenario,
+			market_type:"Balanced",
+			seed: seedValue
+		);
+	}
 	output {
 		display map {
-			grid grille_low lines: #gray;
+			grid grille_low lines: #darkgreen;
 			species sellers aspect:default;
 			species buyers aspect:default;
 		}
