@@ -38,7 +38,9 @@ global {
 	int max_steps;
 
 	list<point> all_no_demand_buyers;
-
+	
+	// Testing git interface from gama
+	
 	// map<string, string> PARAMS <- ['dbtype'::'sqlite', 'database'::'../../db/mas-mbti-recruitment.db'];
 	// map<string, string> PARAMS_SQL <- ['host'::hostname, 'dbtype'::'sqlserver', 'database'::'TESTEDB', 'port'::'1433', 'user'::'gama_user', 'passwd'::'gama#123'];
 
