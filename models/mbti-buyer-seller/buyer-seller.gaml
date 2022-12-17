@@ -31,10 +31,30 @@ global {
 	}
 }
 
-species Seller parent: Person {
+species Seller parent: Person control: simple_bdi{
 
+	// Define agent behavior
+	predicate wander <- new_predicate("wander");
+	
+	init{
+		// Begin to wander
+		do add_desire(wander);
+	}
+	
+	// plan that has for goal to fulfill the wander desire	
+	plan letsWander intention:wander 
+	{
+		do wander amplitude: 60.0;
+	}
+	
+	aspect default {
+		image_file buyer_icon <- image_file("../../includes/seller.png");	
+		draw buyer_icon size: 4; 	
+	}
+}
 
-
+grid grille_low width: 10 height: 10 {
+	rgb color <- #white;
 }
 
 experiment Simple type: gui{
@@ -42,5 +62,12 @@ experiment Simple type: gui{
 		create simulation with: (			
 			seed: 0
 		);
+	}
+	
+	output {
+		display map {
+			grid grille_low lines: #gray;
+			species Seller aspect:default;
+		}
 	}
 }
