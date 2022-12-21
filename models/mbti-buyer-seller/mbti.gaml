@@ -21,6 +21,7 @@ species Person skills: [moving]{
 	map<point, float> agent_distance_norm_global;
 	list<point> interacted_target;
 	map<point, int> agents_interacted_within_cycle;
+	map<agent, float> agents_distance_norm_global;
 	
 	list set_my_personality(list<string> mbti_personality,
 							bool use_probability
@@ -89,9 +90,7 @@ species Person skills: [moving]{
 	}
 	
 	action add_agents_interacted_within_cycle(pair<point, int> agents_step){
-		write "inside-add_agents_interacted_within_cycle: " + agents_step;
 		add agents_step to: agents_interacted_within_cycle;
-		write "inside-after-add_agents_interacted_within_cycle: " + agents_interacted_within_cycle;
 	}
 	
 	pair<agent, float> get_max_score(map<agent, float> agent_score){
@@ -118,13 +117,17 @@ species Person skills: [moving]{
 		list_of_agents <- reverse (list_of_agents sort_by (each distance_to self));
 		
 		// Get the distance of each buyer to the seller and calculate the inverted norm score
-		map<agent, float> agents_distance_to_me  <- get_distances(list_of_agents); 
+		map<agent, float> agents_distance_to_me  <- get_distances(list_of_agents);
 		map<agent, float> agents_distance_norm_global <- agents_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, agents_distance_to_me, "cost")));
 		
 		return agents_distance_norm_global;
 	}
 	
 	action calculate_score(list<agent> buyers_to_calculate){
+		
+		agents_distance_norm_global <- get_agents_in_my_view(buyers_to_calculate);
+		write "agents_distance_norm_global: " + agents_distance_norm_global;
+		
 		// Calculate score for E-I 
 		map<agent, float> buyers_e_i_score;
 		if (self.my_personality contains_any ["E", "I"]) {buyers_e_i_score <- get_extroversion_introversion_score(buyers_to_calculate);}		
@@ -132,30 +135,24 @@ species Person skills: [moving]{
 	
 	map<agent, float> get_extroversion_introversion_score(list<agent> agents_to_calculate){
 		map<agent, float> score_e_i;
-		
+
 		// When there is a unique agent we can simply consider it as the max score
 		if(length(agents_to_calculate)=1){
 			score_e_i <-  map<agent, float>(agents_to_calculate collect (first(each)::1.0));
-			write "buyers_to_calculate-score_e_i: " + score_e_i;
 		}
 		else {			
 		
 			map<agent, float> num_interactions_to_the_agent_norm;
 
 			string criteria_type;
-			write "num_interactions_with_the_agent: " + num_interactions_with_the_agent;
+
 			// According to the seller personality type the normalization procedure will change (cost or benefit attribute) 
 			criteria_type <- self.is_extroverted ? "cost" : "benefit";			 
-			//num_interactions_with_the_agent_norm <- num_interactions_with_the_agent.pairs as_map (each.key::float(get_normalized_values(each.value, num_interactions_with_the_agent, criteria_type)));
+			map<agent, float> num_interactions_with_the_agent_norm <- num_interactions_with_the_agent.pairs as_map (each.key::float(get_normalized_values(each.value, num_interactions_with_the_agent, criteria_type)));
 			
 			// Calculate SCORE-E-I
-			//score_e_i <- buyers_distance_norm_global.pairs as_map (each.key::each.value+(num_visits_to_the_buyer_norm[each.key]));
-			
-			// TODO: REMOVE !!
-			score_e_i <-  map<agent, float>(agents_to_calculate collect (first(each)::1.0));
-			return score_e_i;	
-		}
-		
+			score_e_i <- agents_distance_norm_global.pairs as_map (each.key::each.value+(num_interactions_with_the_agent_norm[each.key]));
+		}		
 		
 		return score_e_i;
 	}

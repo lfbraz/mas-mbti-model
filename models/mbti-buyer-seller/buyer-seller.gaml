@@ -11,13 +11,12 @@ import "mbti.gaml"
 
 global {
 	
-	int nb_buyers <- 50;
+	int nb_buyers <- 30;
 	int nb_items_to_buy <- 100;
 
-	int view_distance <- 10;
+	int view_distance <- 25;
 	int steps <- 0;
 	int max_steps <- 1000;
-	list<point> all_no_demand_buyers;	
 
 	init {
 		//create Seller {
@@ -144,7 +143,6 @@ species Seller parent: Person control: simple_bdi{
 					
 					// We need to control the cycle a seller visited a buyer to be able to remove after the limit
 					pair<point, int> agents_step <- point(current_buyer)::steps;
-					write "before-add_agents_interacted_within_cycle: " + agents_step;  
 					invoke add_agents_interacted_within_cycle(agents_step);
 					
 				}
@@ -169,18 +167,14 @@ species Seller parent: Person control: simple_bdi{
 		// If a target was already visited we must removed it
 		possible_buyers <- remove_visited_target(possible_buyers);
 		
-		write "possible_buyers-" + possible_buyers;
-		
 		// Calculate the scores based on MBTI personality
 		map<Buyer, float> buyers_score;
 		list<agent> buyers_in_my_view;
 
 		buyers_in_my_view <- get_buyers_from_points(possible_buyers);
 		
-		buyers_score <- super.calculate_score(buyers_in_my_view);		
-		
-		write "choose_buyer_target-" + buyers_score;
-		
+		buyers_score <- super.calculate_score(buyers_in_my_view);
+	
 		// It is important to check if there is any buyer to consider because T-F can remove all the possible agents
 		if (empty(buyers_score)) {
 			do remove_intention(sell_item, true);
@@ -211,20 +205,14 @@ species Seller parent: Person control: simple_bdi{
 		list<point> buyers_to_remove;
 
 		// Here we have a parameter to define the min cycles to consider before a seller can return to an already visited buyer
-		write "agents_interacted_within_cycle-" + agents_interacted_within_cycle;
 		buyers_within_limit <- map<point, int>(agents_interacted_within_cycle.pairs where ((steps - each.value) < number_of_cycles_to_return_visited_buyer));
 		buyers_to_remove <- buyers_within_limit.keys;
 
 		// Here we have a parameter to define the max number of visits to consider as a limit to a seller be able to visit again the same buyer
 		buyers_within_limit  <- map<point, int>(agents_interacted_within_cycle.pairs where ((each.value) >= max_number_of_visits_to_a_visited_buyer ));
 		buyers_to_remove <- (buyers_to_remove union buyers_within_limit.keys);
-		
-		write "buyers_to_remove-" + buyers_to_remove;
 
 		remove all:buyers_to_remove from: list_of_points;
-		
-		// We remove all buyers with no demand
-		remove all:all_no_demand_buyers from: list_of_points;		
 		
 		return list_of_points;
 	}
@@ -251,14 +239,14 @@ species Buyer skills: [moving] {
 	}
 }
 
-grid grille_low width: 10 height: 10 {
+grid grille_low width: 5 height: 5 {
 	rgb color <- #white;
 }
 
 experiment Simple type: gui{
 	action _init_ {
 		create simulation with: (			
-			seed: 0
+			seed: 200
 		);
 	}
 	
