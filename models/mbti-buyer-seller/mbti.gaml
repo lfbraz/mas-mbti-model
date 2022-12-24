@@ -171,16 +171,18 @@ species Person skills: [moving]{
 		// Calculate score for E-I 
 		map<agent, float> agents_e_i_score;
 		if (self.my_personality contains_any ["E", "I"]) {agents_e_i_score <- get_extroversion_introversion_score(agents_in_my_view);}
+		write "agents_e_i_score: " + agents_e_i_score;
 		
 		// Calculate score for S-N 
-		//map<agent, float> agents_s_n_score ;
-		//if (self.my_personality contains_any ["S", "N"]) {agents_s_n_score <- get_sensing_intuition_score(agents_to_calculate);}
+		map<agent, float> agents_s_n_score ;
+		if (self.my_personality contains_any ["S", "N"]) {agents_s_n_score <- get_sensing_intuition_score(agents_in_my_view);}
+		write "agents_s_n_score: " + agents_s_n_score;
 		
 		// Sum all scores
 		map<agent, float> agents_score;
 		
-		agents_score <- map<agent, float>(agents_in_my_view collect (each:: (agents_e_i_score[each]*weight_e_i) //+
-																					 //(agents_s_n_score[each]*weight_s_n) 		
+		agents_score <- map<agent, float>(agents_in_my_view collect (each:: (agents_e_i_score[each]*weight_e_i) +
+																					 (agents_s_n_score[each]*weight_s_n) 		
 		));
 		
 		return agents_score;
@@ -258,8 +260,8 @@ species Person skills: [moving]{
 				map<agent, float> agents_closest_to_edge;
 				
 				loop cluster over: clusters{
-					cluster_list <- list<point>((cluster collect each));			
-					agent_closest_to_edge <- agent(geometry(cluster) farthest_point_to(point(self)));
+					cluster_list <- list<point>((cluster collect each));
+					agent_closest_to_edge <- agent_closest_to(geometry(cluster) farthest_point_to(point(self)));
 					add agent_closest_to_edge ::(agent_closest_to_edge  distance_to self) to:agents_closest_to_edge;
 				}
 				

@@ -27,7 +27,7 @@ global {
 		
 		create Seller {
 			write "Seller without prob";
-			do set_my_personality(["E", "S", "T", "J"], false); // Not using probability
+			do set_my_personality(["E", "N", "T", "J"], false); // Not using probability
 			do show_my_personality();
 		}
 		
