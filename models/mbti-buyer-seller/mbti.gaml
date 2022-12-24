@@ -11,6 +11,7 @@ model mbti
 
 species Person skills: [moving]{
 	
+	// Weights for each dichtomy considered in MADM matrix
 	float weight_e_i <- 1/3;
 	float weight_s_n <- 1/3;
 	float weight_t_f <- 1/3;
@@ -90,7 +91,7 @@ species Person skills: [moving]{
 		return mbti_personality;	
 	}
 	
-	action add_interactions_with_agent(agent interacted_agent){
+	action increment_interactions_with_agent(agent interacted_agent){
 		add interacted_agent::num_interactions_with_the_agent[interacted_agent] + 1 to:num_interactions_with_the_agent;
 	}
 	
@@ -126,16 +127,14 @@ species Person skills: [moving]{
 		map<point, int> agents_within_limit ; 
 		list<point> agents_to_remove;
 		
-		// Here we have a parameter to define the min cycles to consider before a seller can return to an already visited buyer
-		write "cycle: " + cycle;
+		// We have a parameter to define the min cycles to consider before a Seller can return to an already visited Buyer
 		agents_within_limit <- map<point, int>(agents_interacted_within_cycle.pairs where ((cycle - each.value) < number_of_cycles_to_return_interacted_agent));
 		agents_to_remove <- agents_within_limit.keys;
 
-		// Here we have a parameter to define the max number of visits to consider as a limit to a seller be able to visit again the same buyer
+		// We have a parameter to define the max number of visits to consider as a limit to a seller be able to visit again the same buyer
 		agents_within_limit  <- map<point, int>(num_interactions_with_the_agent.pairs where ((each.value) >= max_number_of_visits_to_a_interacted_agent ));
 		agents_to_remove <- (agents_to_remove union agents_within_limit.keys);
 		
-		write "agents_to_remove:" + agents_to_remove;
 		remove all:agents_to_remove from: list_of_points;
 		
 		return list_of_points;
@@ -152,7 +151,7 @@ species Person skills: [moving]{
 	map<agent, float> get_agents_in_my_view(list<agent> list_of_agents){
 		list_of_agents <- reverse (list_of_agents sort_by (each distance_to self));
 		
-		// Get the distance of each buyer to the seller and calculate the inverted norm score
+		// Get the distance of each Buyer to the Seller and calculate the inverted norm score
 		map<agent, float> agents_distance_to_me  <- get_distances(list_of_agents);
 		map<agent, float> agents_distance_norm_global <- agents_distance_to_me.pairs as_map (each.key::(get_normalized_values(each.value, agents_distance_to_me, "cost")));
 		
@@ -161,20 +160,13 @@ species Person skills: [moving]{
 	
 	action calculate_score(list<point> agents_to_calculate, int cycle){
 		
-		write "agents_to_calculate: " + agents_to_calculate;
-		
-		// If a target was already visited we must removed it
+		// Remove target according to the model constraints
 		agents_to_calculate <- remove_interacted_target(agents_to_calculate, cycle);
-		
-		write "agents_to_calculate-after_removal: " + agents_to_calculate;
 		
 		list<agent> agents_in_my_view;
 		agents_in_my_view <- get_agents_from_points(agents_to_calculate);
 		
-		write "agents_in_my_view: " + agents_in_my_view;
-		
 		agents_distance_norm_global <- get_agents_in_my_view(agents_in_my_view);
-		write "agents_distance_norm_global: " + agents_distance_norm_global;
 		
 		// Calculate score for E-I 
 		map<agent, float> agents_e_i_score;
@@ -191,8 +183,6 @@ species Person skills: [moving]{
 																					 //(agents_s_n_score[each]*weight_s_n) 		
 		));
 		
-		write "agents_score: " + agents_score;
-										  
 		return agents_score;
 	}
 	
@@ -239,8 +229,8 @@ species Person skills: [moving]{
 				
 				list<map<list<agent>, int>> clusters_density <-list<map<list<agent>, int>>(clusters collect (each::length(each)));
 				
-				// Here we must navigate in three different levels because of the structure of the list of maps of lists		
-				// With that we create a map of buyers with the density of its own cluster
+				// We must navigate in three different levels because of the structure of the list of maps of lists		
+				// Given that, we create a map of Buyers with the density of their own cluster
 				map<agent, float> agents_density;
 				loop cluster over:clusters_density{
 					loop agents_by_density over: cluster.pairs{

@@ -27,7 +27,7 @@ global {
 		
 		create Seller {
 			write "Seller without prob";
-			do set_my_personality(["I", "S", "T", "J"], false); // Not using probability
+			do set_my_personality(["E", "S", "T", "J"], false); // Not using probability
 			do show_my_personality();
 		}
 		
@@ -46,7 +46,6 @@ global {
 	}
 	
 	reflex count{
-		write "cycle: " + cycle; 
 		cycle <- cycle + 1;
 	}
 }
@@ -131,21 +130,22 @@ species Seller parent: Person control: simple_bdi{
 					if current_demand = 0 {
 						do die;
 					}
-				
-					// Add number of visits to consider in E-I dichotomy
-					invoke add_interactions_with_agent(current_buyer);					
 					
-					// do persist_seller_action(current_buyer, target);	
 					do add_belief(met_buyer);
+					
+					//                  <<<<< BEGIN-MBTI >>>>
+					// We increment the number of interactions with the current_buyer to consider in E-I dichotomy
+					invoke increment_interactions_with_agent(current_buyer);					
+					
+					// We add the target (point) in the list of interacted targets				
 					invoke add_interacted_target(target);	
 					
-					// We need to control the cycle a seller visited a buyer to be able to remove after the limit
+					// We need to control the cycle a Seller visited a Buyer to be able to remove it after the limit
 					pair<point, int> agents_cycle <- point(current_buyer)::cycle;
 					invoke add_agents_interacted_within_cycle(agents_cycle);
 					
 				}
 				
-				write "remove_belief: location_buyer: " + target;
 				do remove_belief(new_predicate("location_buyer", ["location_value"::target]));				
 				
 				target <- nil;				
@@ -157,10 +157,10 @@ species Seller parent: Person control: simple_bdi{
 	
 	//plan that has for goal to fulfill the define item target desire. This plan is instantaneous (does not take a complete simulation step to apply).
 	plan choose_buyer_target intention: define_buyer_target instantaneous: true{
-		write "choose_buyer_target";
+
 		possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
 		
-		write "possible_buyers: " + possible_buyers ;
+		//                  <<<<< MBTI >>>>
 		// Calculate the scores based on MBTI personality
 		map<Buyer, float> buyers_score;
 		buyers_score <- super.calculate_score(possible_buyers, cycle);
@@ -173,26 +173,15 @@ species Seller parent: Person control: simple_bdi{
 		} else {
 			
 			// We get the max score according to the MADM method			
-			map<Buyer, float> max_buyer_score <- super.get_max_score(buyers_score);
+			map<Buyer, float> max_buyer_score <- super.get_max_score(buyers_score); 		//  <<<<< MBTI >>>>
 			
 			// Now find the target buyer from its location
 			target <- point(max_buyer_score.keys[0]);
-			write "target: " + target;
 		
 		}
 		do remove_intention(define_buyer_target, true);
 	}
 	
-	list get_buyers_from_points(list list_of_points){
-		list<Buyer> list_of_buyers; 
-		loop buyer over: list_of_points{
-			add Buyer(buyer) to: list_of_buyers;
-		}
-		return list_of_buyers;	
-	}
-	
-	
-
 	aspect default {
 		image_file buyer_icon <- image_file("../../includes/seller.png");	
 		draw buyer_icon size: 4;
