@@ -20,6 +20,9 @@ species Person skills: [moving]{
 	int number_of_cycles_to_return_interacted_agent <- 5;
 	int max_number_of_visits_to_a_interacted_agent <- 3;
 	
+    // T-F constraints
+    float min_distance_to_exclude <- 10.0;
+	
 	list my_personality;
 	
 	bool is_extroverted;
@@ -178,11 +181,17 @@ species Person skills: [moving]{
 		if (self.my_personality contains_any ["S", "N"]) {agents_s_n_score <- get_sensing_intuition_score(agents_in_my_view);}
 		write "agents_s_n_score: " + agents_s_n_score;
 		
+		// Calculate score for T-F
+		map<agent, float> agents_t_f_score;
+		if (self.my_personality contains_any ["T", "F"]) {agents_t_f_score <- get_thinking_feeling_score(agents_in_my_view);}	
+		write "agents_t_f_score: " + agents_t_f_score;
+		
 		// Sum all scores
 		map<agent, float> agents_score;
 		
 		agents_score <- map<agent, float>(agents_in_my_view collect (each:: (agents_e_i_score[each]*weight_e_i) +
-																					 (agents_s_n_score[each]*weight_s_n) 		
+																					 (agents_s_n_score[each]*weight_s_n) +
+																					 (agents_t_f_score[each]*weight_t_f)		
 		));
 		
 		return agents_score;
@@ -279,5 +288,40 @@ species Person skills: [moving]{
 	
 			return score_s_n;		
 		}
+		
+		map<agent, float> get_thinking_feeling_score(list<agent> agents_to_calculate){
+			map<agent, float> score_t_f;
+			
+			list agents_perceived <- get_agents_from_points(agents_to_calculate);
+			
+			float inc_num_agents_close_to_target_agent <- 0.0;
+			map<agent, float> num_agents_close_to_target_agent;		
+		
+			loop target_agent over: agents_to_calculate{ // buyer
+				loop agent_perceived over: agents_perceived{ // seller
+					if(point(agent_perceived) distance_to point(target_agent) < min_distance_to_exclude){
+						inc_num_agents_close_to_target_agent  <- inc_num_agents_close_to_target_agent + 1.0;	
+					}
+				}
+				add target_agent::inc_num_agents_close_to_target_agent to:num_agents_close_to_target_agent;
+				inc_num_agents_close_to_target_agent <- 0.0;
+			}
+		
+			// We give more weight for feeling agents
+			float agents_close_to_target_agent_weight;
+			float distance_weight; 
+			
+			agents_close_to_target_agent_weight <- !self.is_thinking ? 0.8 : 0.2; 
+			distance_weight <- 1 - agents_close_to_target_agent_weight ; 
+			
+			// Normalize num_agents_close_to_main_agent as a cost attribute and apply the weight
+			map<agent, float> num_agents_close_to_target_agent_norm;
+			num_agents_close_to_target_agent_norm <- num_agents_close_to_target_agent.pairs as_map (each.key::(get_normalized_values(each.value, num_agents_close_to_target_agent, "cost")));		
+			
+			// Calculate SCORE-T-F
+			score_t_f <- agents_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)+(num_agents_close_to_target_agent_norm[each.key]*agents_close_to_target_agent_weight)));
+			
+			return score_t_f;		
+	}
 	
 }
