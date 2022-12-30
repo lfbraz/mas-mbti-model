@@ -108,7 +108,17 @@ species Seller parent: Person control: simple_bdi{
 				
 			do goto target: target;
 			
-			// TODO: Add J-P 
+			// The J-P dichotomy is an indepent function and must be checked here
+			// to calculate if the Seller needs to change the plan 
+			point new_target;
+			new_target <- super.get_judging_perceiving(possible_buyers, target, cycle);
+			
+			if (target != new_target ) {	
+				// write "HAS CHANGED THE TARGET";
+				// If the target has changed seller must move to this new direction
+				target <- new_target;			
+				do goto target: target;
+			}
 			
 			//if the agent reach its location, it updates it takes the item, updates its belief base, and remove its intention to get item
 			if (target = location)  {

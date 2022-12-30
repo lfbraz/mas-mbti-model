@@ -324,4 +324,27 @@ species Person skills: [moving]{
 			return score_t_f;		
 	}
 	
+	point get_judging_perceiving(list<point> agents_to_calculate, point current_target, int cycle){
+		bool must_recalculate_plan;
+		point new_target;
+		
+		// If is a perceiveing agent it has 80% probabability to recalcute the plan
+		must_recalculate_plan <- !self.is_judging ? flip(0.8) : flip(0.2);
+		
+		if(must_recalculate_plan and self.my_personality contains_any ["J", "P"]){			
+		
+			map<agent, float> new_agents_score;
+			new_agents_score <- calculate_score(agents_to_calculate, cycle);
+						
+			if (!empty(new_agents_score )) {
+				map<agent, float> max_agent_score <- get_max_score(new_agents_score);
+				new_target <- point(max_agent_score.keys[0]);	
+			}
+			return new_target;			
+		}
+		
+		return current_target;
+	}	
+
 }
+
