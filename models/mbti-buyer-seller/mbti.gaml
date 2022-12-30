@@ -17,7 +17,7 @@ species Person skills: [moving]{
 	float weight_t_f <- 1/3;
 	
 	// E-I constraints
-	int number_of_cycles_to_return_interacted_agent <- 5;
+	int number_of_cycles_to_return_interacted_agent <- 50;
 	int max_number_of_visits_to_a_interacted_agent <- 3;
 	
     // T-F constraints
@@ -28,7 +28,12 @@ species Person skills: [moving]{
 	bool is_extroverted;
 	bool is_sensing; 
 	bool is_thinking;
-	bool is_judging;	
+	bool is_judging;
+	
+	string E_I;
+	string S_N;
+	string T_F;
+	string J_P;
 	
 	map<agent, float> num_interactions_with_the_agent;
 	map<point, float> agent_distance_norm_global;
@@ -44,10 +49,10 @@ species Person skills: [moving]{
 			mbti_personality <- randomize_personality(mbti_personality);
 		}
 		
-		string E_I <- mbti_personality at 0;
-		string S_N <- mbti_personality at 1;
-		string T_F <- mbti_personality at 2;
-		string J_P <- mbti_personality at 3;
+		E_I <- mbti_personality at 0;
+		S_N <- mbti_personality at 1;
+		T_F <- mbti_personality at 2;
+		J_P <- mbti_personality at 3;
 		
 		self.my_personality <- [];
 	
@@ -173,17 +178,17 @@ species Person skills: [moving]{
 		
 		// Calculate score for E-I 
 		map<agent, float> agents_e_i_score;
-		if (self.my_personality contains_any ["E", "I"]) {agents_e_i_score <- get_extroversion_introversion_score(agents_in_my_view);}
+		if (self.E_I contains_any ["E", "I"]) {agents_e_i_score <- get_extroversion_introversion_score(agents_in_my_view);}
 		write "agents_e_i_score: " + agents_e_i_score;
 		
 		// Calculate score for S-N 
 		map<agent, float> agents_s_n_score ;
-		if (self.my_personality contains_any ["S", "N"]) {agents_s_n_score <- get_sensing_intuition_score(agents_in_my_view);}
+		if (self.S_N contains_any ["S", "N"]) {agents_s_n_score <- get_sensing_intuition_score(agents_in_my_view);}
 		write "agents_s_n_score: " + agents_s_n_score;
 		
 		// Calculate score for T-F
 		map<agent, float> agents_t_f_score;
-		if (self.my_personality contains_any ["T", "F"]) {agents_t_f_score <- get_thinking_feeling_score(agents_in_my_view);}	
+		if (self.T_F contains_any ["T", "F"]) {agents_t_f_score <- get_thinking_feeling_score(agents_in_my_view);}	
 		write "agents_t_f_score: " + agents_t_f_score;
 		
 		// Sum all scores
@@ -331,7 +336,7 @@ species Person skills: [moving]{
 		// If is a perceiveing agent it has 80% probabability to recalcute the plan
 		must_recalculate_plan <- !self.is_judging ? flip(0.8) : flip(0.2);
 		
-		if(must_recalculate_plan and self.my_personality contains_any ["J", "P"]){			
+		if(must_recalculate_plan and self.J_P contains_any ["J", "P"]){			
 		
 			map<agent, float> new_agents_score;
 			new_agents_score <- calculate_score(agents_to_calculate, cycle);

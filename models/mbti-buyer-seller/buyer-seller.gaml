@@ -11,13 +11,13 @@ import "mbti.gaml"
 
 global {
 	
-	int nb_buyers <- 30;
+	int nb_buyers;
 	int nb_items_to_buy <- 100;
 
 	int view_distance <- 20;
 	int cycle <- 0;
 	int max_cycles <- 1000;
-
+	
 	init {
 		//create Seller {
 		//	write "Seller with prob";
@@ -25,18 +25,18 @@ global {
 		//	do show_my_personality();
 		//}
 		
-		create Seller {
-			write "Seller without prob";
-			do set_my_personality(["E", "N", "T", "J"], false); // Not using probability
-			do show_my_personality();
-		}
+		//create Seller {
+		//	write "Seller without prob";
+		//	do set_my_personality(["E", "N", "T", "J"], false); // Not using probability
+		//	do show_my_personality();
+		//}
 		
 		//create Seller {
 		//	do set_my_personality(["R", "R", "R", "R"], false); // Not using probability
 		//	do show_my_personality();
 		//}
 		
-		create Buyer number: nb_buyers;
+		//create Buyer number: nb_buyers;
 	}
 	
 	reflex stop when:cycle=max_cycles{
@@ -66,6 +66,8 @@ species Seller parent: Person control: simple_bdi{
 	list<point> possible_buyers;
 	point target;
 	bool got_buyer <- false;
+	
+	bool default_aspect_type <- true;
 	
 	init{
 		// Begin to wander
@@ -193,15 +195,17 @@ species Seller parent: Person control: simple_bdi{
 	}
 	
 	aspect default {
-		image_file buyer_icon <- image_file("../../includes/seller.png");	
-		draw buyer_icon size: 4;
+		 if(default_aspect_type){draw circle(2) color: #purple;} 
+	  	 else {draw square(2) color: #purple;}
 		// enable view distance
 	    draw circle(view_distance) color:rgb(#yellow,0.5) border: #red;
+	    
+	    draw (string(self.my_personality)) color:#black size:4 at:{location.x-3,location.y+3};
 	}
 }
 
 species Buyer skills: [moving] {
-	rgb color <- #green;
+	rgb color <- #blue;
 	bool visited <- false;
 	int current_demand;
 	
