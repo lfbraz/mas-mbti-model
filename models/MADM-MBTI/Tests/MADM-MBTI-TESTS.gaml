@@ -90,7 +90,7 @@ global {
 	}
 	
 	reflex count{
-		write "Performing step: " + steps;
+		// write "Performing step: " + steps;
 		steps  <- steps + 1;
 	}
 }
@@ -341,7 +341,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			//buyers_size <- get_buyers_size(buyers_in_my_view_global);
 			
 			// write "buyers_size: " + buyers_size;
-			write "get_extroversion_introversion_score-num_visits_to_the_buyer: " + num_visits_to_the_buyer;			
+			//write "get_extroversion_introversion_score-num_visits_to_the_buyer: " + num_visits_to_the_buyer;			
 			
 			string criteria_type;
 			
@@ -349,11 +349,11 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			criteria_type <- self.is_extroverted ? "cost" : "benefit";			 
 			num_visits_to_the_buyer_norm <- num_visits_to_the_buyer.pairs as_map (each.key::float(get_normalized_values(each.value, num_visits_to_the_buyer, criteria_type)));
 			
-			write "get_extroversion_introversion_score-num_visits_to_the_buyer_norm: " + num_visits_to_the_buyer_norm;
+			//write "get_extroversion_introversion_score-num_visits_to_the_buyer_norm: " + num_visits_to_the_buyer_norm;
 			
 			// Calculate SCORE-E-I
 			score_e_i <- buyers_distance_norm_global.pairs as_map (each.key::each.value+(num_visits_to_the_buyer_norm[each.key]));
-			write "score_e_i: " + score_e_i;
+			//write "score_e_i: " + score_e_i;
 			
 			/* 
 			// Log to the database
@@ -439,10 +439,10 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			}
 			
 			// Normalize buyers_closest_to_edge as a benefit attribute
-			write "buyers_closest_to_edge: " + buyers_closest_to_edge;			
+			//write "buyers_closest_to_edge: " + buyers_closest_to_edge;			
 			map<buyers, float> buyers_closest_to_edge_norm;
 			buyers_closest_to_edge_norm <- buyers_closest_to_edge.pairs as_map (each.key::get_normalized_values(each.value, buyers_closest_to_edge, "benefit"));
-			write "buyers_closest_to_edge_norm: " + buyers_closest_to_edge_norm;
+			//write "buyers_closest_to_edge_norm: " + buyers_closest_to_edge_norm;
 			
 			// Calculate SCORE-S-N
 			score_s_n <- buyers_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)
@@ -450,7 +450,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 																			 +(buyers_closest_to_edge_norm[each.key]*buyers_closest_to_edge_weight)
 			));
 			
-			write "score_s_n: " + score_s_n;
+			//write "score_s_n: " + score_s_n;
 			/*	
 			// Log to the database
 			loop buyer over: score_s_n.pairs {
@@ -555,7 +555,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 			new_target <- point(max_buyer_score.keys[0]);
 			
 			if (target != point(max_buyer_score.keys[0])) {	
-				write "HAS CHANGED THE TARGET";
+				//write "HAS CHANGED THE TARGET";
 				// If the target has changed seller must move to this new direction
 				target <- new_target;			
 				do goto target: target;
@@ -642,7 +642,7 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 					ask current_buyer {visited <- true;}
 					// Add number of visits to consider in E-I dichotomy
 					add current_buyer::num_visits_to_the_buyer[current_buyer] + 1 to:num_visits_to_the_buyer;
-					write "sellItem-num_visits_to_the_buyer: " + num_visits_to_the_buyer;
+					//write "sellItem-num_visits_to_the_buyer: " + num_visits_to_the_buyer;
 					
 					// do persist_seller_action(current_buyer, target);	
 					do add_belief(met_buyer);
@@ -672,16 +672,19 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		map<buyers, float> buyers_e_i_score;
 		if (self.E_I contains_any ["E", "I"]) {buyers_e_i_score <- get_extroversion_introversion_score();}		
 		//if(!turn_off_time) {write "get_extroversion_introversion_score: " + (end_time-start_time);}
+		write self.name + " - buyers_e_i_score: " + buyers_e_i_score;
 		
 		// Calculate score for S-N
 		map<buyers, float> buyers_s_n_score;
 		if (self.S_N contains_any ["S", "N"]) {buyers_s_n_score <- get_sensing_intuition_score();}
 		//if(!turn_off_time) {write "get_sensing_intuition_score: " + (end_time-start_time);}
+		write self.name + " - buyers_s_n_score: " + buyers_s_n_score;
 		
 		// Calculate score for T-F
 		map<buyers, float> buyers_t_f_score;
 		if (self.T_F contains_any ["T", "F"]) {buyers_t_f_score <- get_thinking_feeling_score();}		
 		//if(!turn_off_time) {write "get_thinking_feeling_score: " + (end_time-start_time);}
+		write self.name + " - buyers_t_f_score: " + buyers_t_f_score;
 		
 		// Sum all scores
 		map<buyers, float> buyers_score;
@@ -701,13 +704,13 @@ species sellers skills: [moving, SQLSKILL] control: simple_bdi{
 		possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
 		map<buyers, float> num_visits_to_the_buyer_init <- map<buyers, float>(get_buyers_from_points(possible_buyers) collect (each:: 0.0));
 		
-		write "num_visits_to_the_buyer_init: " + num_visits_to_the_buyer_init;
-		write "num_visits_to_the_buyer: " + num_visits_to_the_buyer;
+		//write "num_visits_to_the_buyer_init: " + num_visits_to_the_buyer_init;
+		//write "num_visits_to_the_buyer: " + num_visits_to_the_buyer;
 		
 		num_visits_to_the_buyer <- map<buyers, float>((num_visits_to_the_buyer_init.keys - num_visits_to_the_buyer.keys) collect (each::num_visits_to_the_buyer_init[each]) 
 									+ num_visits_to_the_buyer.pairs);
 		
-		write "num_visits_to_the_buyer-after-init: " + num_visits_to_the_buyer;
+		//write "num_visits_to_the_buyer-after-init: " + num_visits_to_the_buyer;
 				
 		// If a target was already visited we must removed it
 		possible_buyers <- remove_visited_target(possible_buyers);		
@@ -793,7 +796,7 @@ experiment MBTI type: gui benchmark: false  {
 	//float seed <- 2017.0;
 	//float seed <- 2018.0;
 	
-	float seed <- 1985.0;
+	float seed_value <- 1985.0;
 	
 	parameter "Number of Sellers" category:"Sellers" var: nbsellers <- 1 among: [1,3,5,10,15,20];
 	parameter "Number of Buyers" category:"Buyers" var: nbbuyers <- 50 among: [10,50,100,200,400,500, 1280, 6400, 24320];
@@ -831,6 +834,7 @@ experiment MBTI type: gui benchmark: false  {
 	user_command "Seller N" {create sellers number: nbsellers {
 							 do init(['Z','N','Z','Z']);
 							 set location <- {40, 40};
+							 set seed <- myself.seed_value;
 							 }}
 							 
 	user_command "Seller T" {create sellers number: nbsellers {

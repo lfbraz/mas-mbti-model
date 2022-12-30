@@ -41,6 +41,8 @@ species Person skills: [moving]{
 	map<point, int> agents_interacted_within_cycle;
 	map<agent, float> agents_distance_norm_global;
 	
+	list<point> colleagues_in_my_view;
+	
 	list set_my_personality(list<string> mbti_personality,
 							bool use_probability
 	){
@@ -179,17 +181,18 @@ species Person skills: [moving]{
 		// Calculate score for E-I 
 		map<agent, float> agents_e_i_score;
 		if (self.E_I contains_any ["E", "I"]) {agents_e_i_score <- get_extroversion_introversion_score(agents_in_my_view);}
-		write "agents_e_i_score: " + agents_e_i_score;
+		write self.name + " - agents_e_i_score: " + agents_e_i_score;
 		
 		// Calculate score for S-N 
 		map<agent, float> agents_s_n_score ;
 		if (self.S_N contains_any ["S", "N"]) {agents_s_n_score <- get_sensing_intuition_score(agents_in_my_view);}
-		write "agents_s_n_score: " + agents_s_n_score;
+		write self.name + " - agents_s_n_score: " + agents_s_n_score;
 		
 		// Calculate score for T-F
+		// In T-F dichotomy we need to consider both, the target agents and our colleagues 
 		map<agent, float> agents_t_f_score;
-		if (self.T_F contains_any ["T", "F"]) {agents_t_f_score <- get_thinking_feeling_score(agents_in_my_view);}	
-		write "agents_t_f_score: " + agents_t_f_score;
+		if (self.T_F contains_any ["T", "F"]) {agents_t_f_score <- get_thinking_feeling_score(agents_in_my_view, colleagues_in_my_view);}	
+		write self.name + " - agents_t_f_score: " + agents_t_f_score;
 		
 		// Sum all scores
 		map<agent, float> agents_score;
@@ -231,102 +234,102 @@ species Person skills: [moving]{
 		return score_e_i;
 	}
 	
-		map<agent, float> get_sensing_intuition_score (list<agent> agents_to_calculate){
-			map<agent, float> score_s_n;
+	map<agent, float> get_sensing_intuition_score (list<agent> agents_to_calculate){
+		map<agent, float> score_s_n;
 
-			// When there is a unique agent we can simply consider it as the max score
-			if(length(agents_to_calculate)=1){
-				score_s_n <-  map<agent, float>(agents_to_calculate collect (first(each)::1.0));
-			}
-			else {
-			
-				// Calculate the density using simple_clustering_by_distance technique
-				list<list<agent>> clusters <- list<list<agent>>(simple_clustering_by_distance(agents_to_calculate, 10));
-				
-				list<map<list<agent>, int>> clusters_density <-list<map<list<agent>, int>>(clusters collect (each::length(each)));
-				
-				// We must navigate in three different levels because of the structure of the list of maps of lists		
-				// Given that, we create a map of Buyers with the density of their own cluster
-				map<agent, float> agents_density;
-				loop cluster over:clusters_density{
-					loop agents_by_density over: cluster.pairs{
-						loop agent_unique over: agents_by_density.key {
-							add agent_unique::agents_by_density.value to:agents_density;				
-						}				
-					}
-				}
-				
-				float distance_weight;
-				float density_weight;
-				float agents_closest_to_edge_weight;
-				
-				density_weight <- self.is_sensing ? 0.1 : 0.25;
-				agents_closest_to_edge_weight <- self.is_sensing ? 0.1 : 0.25;
-				distance_weight <- 1 - density_weight - agents_closest_to_edge_weight; 			
-				
-				// Normalize density as a benefit attribute
-				map<agent, float> agents_density_norm;
-				agents_density_norm <- agents_density.pairs as_map (each.key::(max(agents_density)>1) ? get_normalized_values(each.value, agents_density, "benefit") : 1.0);
-				
-				// Calculate closest cluster point to the edge (perception radius)
-				list<point> cluster_list;
-				agent agent_closest_to_edge;
-				map<agent, float> agents_closest_to_edge;
-				
-				loop cluster over: clusters{
-					cluster_list <- list<point>((cluster collect each));
-					agent_closest_to_edge <- agent_closest_to(geometry(cluster) farthest_point_to(point(self)));
-					add agent_closest_to_edge ::(agent_closest_to_edge  distance_to self) to:agents_closest_to_edge;
-				}
-				
-				// Normalize buyers_closest_to_edge as a benefit attribute
-				map<agent, float> agents_closest_to_edge_norm;
-				agents_closest_to_edge_norm <- agents_closest_to_edge_norm.pairs as_map (each.key::get_normalized_values(each.value, agents_closest_to_edge, "benefit"));
-				
-				// Calculate SCORE-S-N
-				score_s_n <- agents_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)
-																				 +(agents_density_norm[each.key]*density_weight)
-																				 +(agents_closest_to_edge_norm[each.key]*agents_closest_to_edge_weight)
-				));
-			
-			}
-	
-			return score_s_n;		
+		// When there is a unique agent we can simply consider it as the max score
+		if(length(agents_to_calculate)=1){
+			score_s_n <-  map<agent, float>(agents_to_calculate collect (first(each)::1.0));
 		}
+		else {
 		
-		map<agent, float> get_thinking_feeling_score(list<agent> agents_to_calculate){
-			map<agent, float> score_t_f;
+			// Calculate the density using simple_clustering_by_distance technique
+			list<list<agent>> clusters <- list<list<agent>>(simple_clustering_by_distance(agents_to_calculate, 10));
 			
-			list agents_perceived <- get_agents_from_points(agents_to_calculate);
+			list<map<list<agent>, int>> clusters_density <-list<map<list<agent>, int>>(clusters collect (each::length(each)));
 			
-			float inc_num_agents_close_to_target_agent <- 0.0;
-			map<agent, float> num_agents_close_to_target_agent;		
-		
-			loop target_agent over: agents_to_calculate{ // buyer
-				loop agent_perceived over: agents_perceived{ // seller
-					if(point(agent_perceived) distance_to point(target_agent) < min_distance_to_exclude){
-						inc_num_agents_close_to_target_agent  <- inc_num_agents_close_to_target_agent + 1.0;	
-					}
+			// We must navigate in three different levels because of the structure of the list of maps of lists		
+			// Given that, we create a map of agents with the density of their own cluster
+			map<agent, float> agents_density;
+			loop cluster over:clusters_density{
+				loop agents_by_density over: cluster.pairs{
+					loop agent_unique over: agents_by_density.key {
+						add agent_unique::agents_by_density.value to:agents_density;				
+					}				
 				}
-				add target_agent::inc_num_agents_close_to_target_agent to:num_agents_close_to_target_agent;
-				inc_num_agents_close_to_target_agent <- 0.0;
 			}
+			
+			float distance_weight;
+			float density_weight;
+			float agents_closest_to_edge_weight;
+			
+			density_weight <- self.is_sensing ? 0.1 : 0.25;
+			agents_closest_to_edge_weight <- self.is_sensing ? 0.1 : 0.25;
+			distance_weight <- 1 - density_weight - agents_closest_to_edge_weight; 			
+			
+			// Normalize density as a benefit attribute
+			map<agent, float> agents_density_norm;
+			agents_density_norm <- agents_density.pairs as_map (each.key::(max(agents_density)>1) ? get_normalized_values(each.value, agents_density, "benefit") : 1.0);
+			
+			// Calculate closest cluster point to the edge (perception radius)
+			list<point> cluster_list;
+			agent agent_closest_to_edge;
+			map<agent, float> agents_closest_to_edge;
+			
+			loop cluster over: clusters{
+				cluster_list <- list<point>((cluster collect each));
+				agent_closest_to_edge <- agent_closest_to(geometry(cluster) farthest_point_to(point(self)));
+				add agent_closest_to_edge ::(agent_closest_to_edge  distance_to self) to:agents_closest_to_edge;
+			}
+			
+			// Normalize buyers_closest_to_edge as a benefit attribute
+			map<agent, float> agents_closest_to_edge_norm;
+			agents_closest_to_edge_norm <- agents_closest_to_edge.pairs as_map (each.key::get_normalized_values(each.value, agents_closest_to_edge, "benefit"));
+			
+			// Calculate SCORE-S-N
+			score_s_n <- agents_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)
+																			 +(agents_density_norm[each.key]*density_weight)
+																			 +(agents_closest_to_edge_norm[each.key]*agents_closest_to_edge_weight)
+			));
 		
-			// We give more weight for feeling agents
-			float agents_close_to_target_agent_weight;
-			float distance_weight; 
-			
-			agents_close_to_target_agent_weight <- !self.is_thinking ? 0.8 : 0.2; 
-			distance_weight <- 1 - agents_close_to_target_agent_weight ; 
-			
-			// Normalize num_agents_close_to_main_agent as a cost attribute and apply the weight
-			map<agent, float> num_agents_close_to_target_agent_norm;
-			num_agents_close_to_target_agent_norm <- num_agents_close_to_target_agent.pairs as_map (each.key::(get_normalized_values(each.value, num_agents_close_to_target_agent, "cost")));		
-			
-			// Calculate SCORE-T-F
-			score_t_f <- agents_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)+(num_agents_close_to_target_agent_norm[each.key]*agents_close_to_target_agent_weight)));
-			
-			return score_t_f;		
+		}
+
+		return score_s_n;		
+	}
+		
+	map<agent, float> get_thinking_feeling_score(list<agent> agents_to_calculate, list<point> my_colleagues){
+		map<agent, float> score_t_f;
+		
+		list agents_perceived <- get_agents_from_points(my_colleagues);
+		
+		float inc_num_agents_close_to_target_agent <- 0.0;
+		map<agent, float> num_agents_close_to_target_agent;		
+	
+		loop target_agent over: agents_to_calculate{ // targets
+			loop agent_perceived over: agents_perceived{ // colleagues
+				if(point(agent_perceived) distance_to point(target_agent) < min_distance_to_exclude){
+					inc_num_agents_close_to_target_agent  <- inc_num_agents_close_to_target_agent + 1.0;	
+				}
+			}
+			add target_agent::inc_num_agents_close_to_target_agent to:num_agents_close_to_target_agent;
+			inc_num_agents_close_to_target_agent <- 0.0;
+		}
+	
+		// We give more weight for feeling agents
+		float agents_close_to_target_agent_weight;
+		float distance_weight; 
+		
+		agents_close_to_target_agent_weight <- !self.is_thinking ? 0.8 : 0.2; 
+		distance_weight <- 1 - agents_close_to_target_agent_weight ; 
+		
+		// Normalize num_agents_close_to_main_agent as a cost attribute and apply the weight
+		map<agent, float> num_agents_close_to_target_agent_norm;
+		num_agents_close_to_target_agent_norm <- num_agents_close_to_target_agent.pairs as_map (each.key::(get_normalized_values(each.value, num_agents_close_to_target_agent, "cost")));		
+		
+		// Calculate SCORE-T-F
+		score_t_f <- agents_distance_norm_global.pairs as_map (each.key::((each.value*distance_weight)+(num_agents_close_to_target_agent_norm[each.key]*agents_close_to_target_agent_weight)));
+		
+		return score_t_f;		
 	}
 	
 	point get_judging_perceiving(list<point> agents_to_calculate, point current_target, int cycle){
@@ -336,7 +339,7 @@ species Person skills: [moving]{
 		// If is a perceiveing agent it has 80% probabability to recalcute the plan
 		must_recalculate_plan <- !self.is_judging ? flip(0.8) : flip(0.2);
 		
-		if(must_recalculate_plan and self.J_P contains_any ["J", "P"]){			
+		if(must_recalculate_plan and self.J_P contains_any ["J", "P"]){
 		
 			map<agent, float> new_agents_score;
 			new_agents_score <- calculate_score(agents_to_calculate, cycle);

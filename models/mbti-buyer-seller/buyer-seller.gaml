@@ -65,7 +65,7 @@ species Seller parent: Person control: simple_bdi{
 	
 	list<point> possible_buyers;
 	point target;
-	bool got_buyer <- false;
+	bool got_buyer <- false;	
 	
 	bool default_aspect_type <- true;
 	
@@ -81,6 +81,15 @@ species Seller parent: Person control: simple_bdi{
 			focus id:"location_buyer" var:location;
 			ask myself {do remove_intention(wander, false);	}	
 		}		
+	}
+	
+	perceive target:Seller in: view_distance{
+		// We must validate that only our teammates would be considered (also remove the seller itself)
+		if(myself.name != self.name){
+			focus id:"location_seller" var:location;
+			colleagues_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+			do remove_belief(new_predicate("location_seller"));		
+		}
 	}
 	
 	//if the agent has the belief that there is a possible buyer given location, it adds the desire to interact with the buyer to try to sell items.

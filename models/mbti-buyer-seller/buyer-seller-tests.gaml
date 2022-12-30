@@ -144,12 +144,12 @@ experiment Buyer_Seller_Test type: gui benchmark: false  {
 	user_command "Seller J" {create Seller number: nb_sellers {
 						 do set_my_personality(["Z", "Z", "F", "J"], false);
 						 set location <- {40, 40};
-						 set view_distance <- 30.0;				 
+						 set view_distance <- 25.0;				 
 						 }
 						 create Seller number: nb_sellers {
 							 do set_my_personality(["E", "Z", "Z", "Z"], false);
 							 set location <- {35, 30};
-							 set view_distance <- 30.0;
+							 set view_distance <- 25.0;
 							 }
 						 }
 	
@@ -157,12 +157,12 @@ experiment Buyer_Seller_Test type: gui benchmark: false  {
 						 do set_my_personality(["Z", "Z", "F", "P"], false);
 						 set location <- {40, 40};
 						 set color <- #red;
-						 set view_distance <- 30.0;
+						 set view_distance <- 25.0;
 						 }
 						 create Seller number: nb_sellers {
 							 do set_my_personality(["E", "Z", "Z", "Z"], false);
 							 set location <- {35, 30};
-							 set view_distance <- 30.0;
+							 set view_distance <- 25.0;
 						 }
 					}
 	
