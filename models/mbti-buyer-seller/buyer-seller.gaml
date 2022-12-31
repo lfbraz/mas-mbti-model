@@ -1,6 +1,6 @@
 /**
 * Name: buyer_seller
-* Based on the internal empty template. 
+* The Buyer-Seller approach using a model inspired on MBTI personality type theory 
 * Author: lubraz
 * Tags: 
 */
@@ -231,11 +231,15 @@ grid grille_low width: 5 height: 5 {
 	rgb color <- #white;
 }
 
-experiment Simple type: gui{
+experiment Buyer_Seller_simple type: gui{
 	action _init_ {
 		create simulation with: (			
-			seed: 200
-		);
+			seed: 200);
+		create Seller {
+			do set_my_personality(["I", "S", "T", "J"], true); // Using probability
+			do show_my_personality();
+		    }
+		create Buyer number: 50;
 	}
 	
 	output {

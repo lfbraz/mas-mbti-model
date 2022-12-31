@@ -1,6 +1,6 @@
 /**
 * Name: mbti
-* Based on the internal empty template. 
+* A model implementation inspired on MBTI personality type theory. 
 * Author: lubraz
 * Tags: 
 */
