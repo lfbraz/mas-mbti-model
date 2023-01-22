@@ -11,32 +11,67 @@ import "mbti.gaml"
 
 global {
 	
+	// Vars received from parameters
 	int nb_sellers;
 	int nb_buyers;
-	int nb_items_to_buy <- 100;
-
-	int view_distance <- 20;
-	int cycle <- 0;
-	int max_cycles <- 1000;
-	
+	int nb_items_to_buy;
+	int nb_items_to_sell;
 	list<string> teams_mbti;
 	string teams_mbti_string;
+	int total_demand;
+	string market_type;
+	
+	// Global environment vars
+	int cycle <- 0;	
+	int view_distance;
+	int max_cycles;
+	string scenario;	
+	
+	// Staging vars
+	int total_sellers_demand;
+	int total_buyers_demand;
 	
 	init {
+		write "total_demand: " + total_demand;
+		write "seed: " + seed;
 		// Set teams MBTI profile
 		teams_mbti <- list(teams_mbti_string split_with ",");
-		 
-		create Seller number: nb_sellers {
-			do set_my_personality(teams_mbti, false); // Not using probability
-			do show_my_personality();			
+		
+		// Calculate Market Demand
+		do calculate_market_demand(market_type, total_demand);
+	}
+	
+	action calculate_market_demand(string market_type, int total_demand){
+		
+		if (market_type="Balanced"){
+			total_sellers_demand <- (total_demand/2);
+			total_buyers_demand <- (total_demand/2);			
 		}
 		
-		create Buyer number: nb_buyers;
+		if (market_type="Supply>Demand"){
+			total_sellers_demand <- ((2/3) * total_demand);
+			total_buyers_demand <- (total_demand-total_sellers_demand);			
+		}
+		
+		if (market_type="Demand>Supply"){
+			total_buyers_demand <- ((2/3) * total_demand);
+			total_sellers_demand  <- (total_demand-total_buyers_demand);			
+		}
+			
+		// Calculate the items to sell and buy according to the market
+		nb_items_to_sell <- round(total_sellers_demand/nb_sellers);
+		nb_items_to_buy <- round(total_buyers_demand/nb_buyers);
 	}
 	
 	reflex stop when:cycle=max_cycles{
 		list sellers_demand <- list(Seller collect  (each.current_demand));
-		write 'sellers_demand: ' + sellers_demand;
+
+		write "PERFORMANCE: " + (total_sellers_demand - sum(sellers_demand))
+			  + " SCENARIO: " + scenario 
+			  + " MARKET_TYPE:" + market_type
+			  + " TEAMS MBTI: " + teams_mbti
+			  + " SEED: " + seed;
+			  
 		do pause;	
 	}
 	
@@ -56,7 +91,7 @@ species Seller parent: Person control: simple_bdi{
 	predicate met_buyer <- new_predicate("met_buyer");
 	
 	// How many items the Seller can sell
-	int current_demand;
+	int current_demand <- copy(nb_items_to_sell);
 	
 	list<point> possible_buyers;
 	point target;
@@ -226,24 +261,43 @@ grid grille_low width: 5 height: 5 {
 	rgb color <- #white;
 }
 
-experiment buyer_seller_general type: gui{
+experiment buyer_seller_default type: gui keep_seed: true{
 	// Parameters
 	parameter "Number of Sellers" category:"Agents" var: nb_sellers <- 3 among: [1,3,8,10,15,20];
 	parameter "Number of Buyers" category:"Agents" var: nb_buyers <- 10 among: [10,50,100,200,400,500, 1280, 6400, 24320];
 	parameter "Teams MBTI" var: teams_mbti_string <- "E,R,R,R";
 	
 	// Set simulation default values
-	int seed_value <- 200;
+	//float seed_value <- 1985.0 with_precision 1;
 	int nb_sellers <- 2;
 	int nb_buyers <- 10;
+	int total_demand <- 1000; // LOW
+	string market_type <- "Balanced";
+	string scenario <- 'LOW';
+	int max_cycles <- 1000;
+	int view_distance <- 20;
 	
-	action _init_ {
+	float seed_value <- 1985.0;
+    float seed <- seed_value; // force the value of the seed.
+	
+	action _init_ {		
 		create simulation with: (			
 			seed: seed_value,
 			nb_sellers:nb_sellers,
 			nb_buyers:nb_buyers,
+			total_demand: total_demand,
+			market_type:market_type,
+			scenario: scenario,
+			max_cycles: max_cycles,
+			view_distance: view_distance,
 			teams_mbti_string: "E,R,R,R");
-				
+			
+		create Seller number: nb_sellers {
+			do set_my_personality(teams_mbti, false); // Not using probability
+			do show_my_personality();
+		}
+		
+		create Buyer number: nb_buyers;	
 	}
 
 	output {
