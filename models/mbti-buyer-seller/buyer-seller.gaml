@@ -11,6 +11,7 @@ import "mbti.gaml"
 
 global {
 	
+	int nb_sellers;
 	int nb_buyers;
 	int nb_items_to_buy <- 100;
 
@@ -18,30 +19,24 @@ global {
 	int cycle <- 0;
 	int max_cycles <- 1000;
 	
+	list<string> teams_mbti;
+	string teams_mbti_string;
+	
 	init {
-		//create Seller {
-		//	write "Seller with prob";
-		//	do set_my_personality(["I", "S", "T", "J"], true); // Using probability
-		//	do show_my_personality();
-		//}
+		// Set teams MBTI profile
+		teams_mbti <- list(teams_mbti_string split_with ",");
+		 
+		create Seller number: nb_sellers {
+			do set_my_personality(teams_mbti, false); // Not using probability
+			do show_my_personality();			
+		}
 		
-		//create Seller {
-		//	write "Seller without prob";
-		//	do set_my_personality(["E", "N", "T", "J"], false); // Not using probability
-		//	do show_my_personality();
-		//}
-		
-		//create Seller {
-		//	do set_my_personality(["R", "R", "R", "R"], false); // Not using probability
-		//	do show_my_personality();
-		//}
-		
-		//create Buyer number: nb_buyers;
+		create Buyer number: nb_buyers;
 	}
 	
 	reflex stop when:cycle=max_cycles{
 		list sellers_demand <- list(Seller collect  (each.current_demand));
-		
+		write 'sellers_demand: ' + sellers_demand;
 		do pause;	
 	}
 	
@@ -231,17 +226,26 @@ grid grille_low width: 5 height: 5 {
 	rgb color <- #white;
 }
 
-experiment Buyer_Seller_simple type: gui{
+experiment buyer_seller_general type: gui{
+	// Parameters
+	parameter "Number of Sellers" category:"Agents" var: nb_sellers <- 3 among: [1,3,8,10,15,20];
+	parameter "Number of Buyers" category:"Agents" var: nb_buyers <- 10 among: [10,50,100,200,400,500, 1280, 6400, 24320];
+	parameter "Teams MBTI" var: teams_mbti_string <- "E,R,R,R";
+	
+	// Set simulation default values
+	int seed_value <- 200;
+	int nb_sellers <- 2;
+	int nb_buyers <- 10;
+	
 	action _init_ {
 		create simulation with: (			
-			seed: 200);
-		create Seller {
-			do set_my_personality(["I", "S", "T", "J"], true); // Using probability
-			do show_my_personality();
-		    }
-		create Buyer number: 50;
+			seed: seed_value,
+			nb_sellers:nb_sellers,
+			nb_buyers:nb_buyers,
+			teams_mbti_string: "E,R,R,R");
+				
 	}
-	
+
 	output {
 		display map {
 			grid grille_low lines: #gray;

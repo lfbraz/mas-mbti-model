@@ -181,18 +181,15 @@ species Person skills: [moving]{
 		// Calculate score for E-I 
 		map<agent, float> agents_e_i_score;
 		if (self.E_I contains_any ["E", "I"]) {agents_e_i_score <- get_extroversion_introversion_score(agents_in_my_view);}
-		write self.name + " - agents_e_i_score: " + agents_e_i_score;
 		
 		// Calculate score for S-N 
 		map<agent, float> agents_s_n_score ;
 		if (self.S_N contains_any ["S", "N"]) {agents_s_n_score <- get_sensing_intuition_score(agents_in_my_view);}
-		write self.name + " - agents_s_n_score: " + agents_s_n_score;
 		
 		// Calculate score for T-F
 		// In T-F dichotomy we need to consider both, the target agents and our colleagues 
 		map<agent, float> agents_t_f_score;
 		if (self.T_F contains_any ["T", "F"]) {agents_t_f_score <- get_thinking_feeling_score(agents_in_my_view, colleagues_in_my_view);}	
-		write self.name + " - agents_t_f_score: " + agents_t_f_score;
 		
 		// Sum all scores
 		map<agent, float> agents_score;
