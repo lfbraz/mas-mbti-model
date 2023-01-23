@@ -161,6 +161,9 @@ species Person skills: [moving]{
 	}
 	
 	action calculate_score(list<agent> agents_in_my_view, int cycle){
+ 
+		// We sort the list to avoid diferent values between the simulations (when a tie happen on the scores)
+		agents_in_my_view  <- agents_in_my_view sort_by(each);
 		agents_distance_norm_global <- get_agents_in_my_view(agents_in_my_view);
 		
 		// Calculate score for E-I 
@@ -188,8 +191,8 @@ species Person skills: [moving]{
 	}
 	
 	map<agent, float> get_extroversion_introversion_score(list<agent> agents_to_calculate){
-		map<agent, float> score_e_i;
 		
+		map<agent, float> score_e_i;
 		map<agent, float> num_interactions_with_the_agent_init <- map<agent, float>(agents_to_calculate collect (each:: 0.0));
 		
 		num_interactions_with_the_agent <- map<agent, float>((num_interactions_with_the_agent_init.keys - num_interactions_with_the_agent.keys) collect (each::num_interactions_with_the_agent_init[each]) 
@@ -284,7 +287,10 @@ species Person skills: [moving]{
 		
 		float inc_num_agents_close_to_target_agent <- 0.0;
 		map<agent, float> num_agents_close_to_target_agent;	
-	
+		
+		// We sort the list to avoid diferent values between the simulations (when a tie happen on the scores)
+		my_colleagues  <- my_colleagues sort_by(each);
+		
 		loop target_agent over: agents_to_calculate{ // targets
 			loop agent_perceived over: my_colleagues{ // colleagues
 				if(point(agent_perceived) distance_to point(target_agent) < min_distance_to_exclude){

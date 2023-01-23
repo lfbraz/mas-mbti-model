@@ -139,6 +139,7 @@ species Seller parent: Person control: simple_bdi{
 		loop buyer over: list_of_points{
 			add Buyer(buyer) to: list_of_buyers;
 		}
+		
 		return list_of_buyers;	
 	}
 	
@@ -293,7 +294,7 @@ experiment buyer_seller_default type: gui keep_seed: true{
 	// Set simulation default values
 	//float seed_value <- 1985.0 with_precision 1;
 	int nb_sellers <- 2;
-	int nb_buyers <- 10;
+	int nb_buyers <- 100;
 	int total_demand <- 1000; // LOW
 	string market_type <- "Balanced";
 	string scenario <- 'LOW';
