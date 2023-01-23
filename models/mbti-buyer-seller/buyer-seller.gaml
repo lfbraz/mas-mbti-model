@@ -71,7 +71,7 @@ global {
 			  + " MARKET_TYPE:" + market_type
 			  + " TEAMS MBTI: " + teams_mbti
 			  + " SEED: " + seed;
-			  
+		
 		do pause;	
 	}
 	
@@ -117,7 +117,10 @@ species Seller parent: Person control: simple_bdi{
 		// We must validate that only our teammates would be considered (also remove the seller itself)
 		if(myself.name != self.name){
 			focus id:"location_seller" var:location;
-			colleagues_in_my_view <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+			list<point> colleagues_in_my_view_points <- get_beliefs(new_predicate("location_seller")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
+
+			// We must populate the MBTI global var colleagues_in_my_view with the perceived Sellers 
+			colleagues_in_my_view <- get_sellers_from_points(colleagues_in_my_view_points); // <<< MBTI >>>>
 			do remove_belief(new_predicate("location_seller"));		
 		}
 	}
@@ -129,6 +132,22 @@ species Seller parent: Person control: simple_bdi{
 	plan letsWander intention:wander 
 	{
 		do wander amplitude: 60.0;
+	}
+	
+	list get_buyers_from_points(list list_of_points){
+		list<Buyer> list_of_buyers; 
+		loop buyer over: list_of_points{
+			add Buyer(buyer) to: list_of_buyers;
+		}
+		return list_of_buyers;	
+	}
+	
+	list get_sellers_from_points(list list_of_points){
+		list<Seller> list_of_sellers; 
+		loop seller over: list_of_points{
+			add Seller(seller) to: list_of_sellers;
+		}
+		return list_of_sellers;	
 	}
 	
 	// plan that has for goal to fulfill the "sell_item" desire
@@ -152,7 +171,8 @@ species Seller parent: Person control: simple_bdi{
 			// The J-P dichotomy is an indepent function and must be checked here
 			// to calculate if the Seller needs to change the plan 
 			point new_target;
-			new_target <- super.get_judging_perceiving(possible_buyers, target, cycle);
+			list<Buyer> buyers_in_my_view <- get_buyers_from_points(possible_buyers);
+			new_target <- super.get_judging_perceiving(buyers_in_my_view, target, cycle);
 			
 			if (target != new_target ) {	
 				// write "HAS CHANGED THE TARGET";
@@ -211,10 +231,13 @@ species Seller parent: Person control: simple_bdi{
 
 		possible_buyers <- get_beliefs(new_predicate("location_buyer")) collect (point(get_predicate(mental_state (each)).values["location_value"]));
 		
-		//                  <<<<< MBTI >>>>
+		// Remove interacted targets according to the model constraints
+		list<point> agents_to_calculate <- super.remove_interacted_target(possible_buyers, cycle); //  <<<<< MBTI >>>>
+		list<Buyer> buyers_in_my_view <- get_buyers_from_points(agents_to_calculate);
+		
 		// Calculate the scores based on MBTI personality
 		map<Buyer, float> buyers_score;
-		buyers_score <- super.calculate_score(possible_buyers, cycle);
+		buyers_score <- super.calculate_score(buyers_in_my_view, cycle); //  <<<<< MBTI >>>>
 	
 		// It is important to check if there is any buyer to consider because T-F can remove all the possible agents
 		if (empty(buyers_score)) {
