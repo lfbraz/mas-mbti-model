@@ -12,20 +12,20 @@ import "buyer-seller.gaml"
 global {
 	
 	// Vars received from parameters
-	int nb_sellers;
-	int nb_buyers;
+	int nb_sellers <- 1;
+	int nb_buyers <- 1;
 	int nb_items_to_buy;
 	int nb_items_to_sell;
 	list<string> teams_mbti;
 	string teams_mbti_string <- 'R,R,R,R';
 	int total_demand <- 1000;
-	string market_type;
+	string market_type <- "Balanced";
 	
 	// Global environment vars
 	int cycle <- 0;	
 	int view_distance;
-	int max_cycles;
-	string scenario;	
+	int max_cycles <- 1000;
+	string scenario <- 'LOW';	
 	
 	// Staging vars
 	int total_sellers_demand;
@@ -34,6 +34,7 @@ global {
 	init {
 		write "new simulation created: " + name;
 		write "teams_mbti_string: " + teams_mbti_string;
+		write "nb_sellers: " + nb_sellers;
 		
 		// Set teams MBTI profile
 		teams_mbti <- list(teams_mbti_string split_with ",");
@@ -109,7 +110,7 @@ experiment buyer_seller_test type: gui benchmark: false  {
 	string scenario <- 'LOW';
 	int max_cycles <- 1000;
 	int view_distance <- 20;
-	
+	int nb_sellers <- 1;
 
 	//reflex t when: every(10#cycle) {
 	//	do compact_memory;

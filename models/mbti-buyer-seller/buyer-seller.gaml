@@ -34,6 +34,8 @@ global {
 	init {
 		write "total_demand: " + total_demand;
 		write "seed: " + seed;
+		write "nb_sellers: " + nb_sellers;
+
 		// Set teams MBTI profile
 		teams_mbti <- list(teams_mbti_string split_with ",");
 		
@@ -99,7 +101,10 @@ species Seller parent: Person control: simple_bdi{
 	
 	bool default_aspect_type <- true;
 	
+	int view_distance;
+	
 	init{
+		write "view_distance: " + view_distance;
 		// Begin to wander
 		do add_desire(wander);
 	}
@@ -319,6 +324,7 @@ experiment buyer_seller_default type: gui keep_seed: true{
 		create Seller number: nb_sellers {
 			do set_my_personality(teams_mbti, false); // Not using probability
 			do show_my_personality();
+			set view_distance <- 20;
 		}
 		
 		create Buyer number: nb_buyers;	
