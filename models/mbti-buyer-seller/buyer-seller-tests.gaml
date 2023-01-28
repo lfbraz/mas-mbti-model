@@ -18,7 +18,7 @@ global {
 	int nb_items_to_sell;
 	list<string> teams_mbti;
 	string teams_mbti_string <- 'R,R,R,R';
-	int total_demand <- 1000;
+	int total_demand <- 100;
 	string market_type <- "Balanced";
 	
 	// Global environment vars
@@ -202,6 +202,13 @@ experiment buyer_seller_test type: gui benchmark: false  {
 						 do set_my_personality(["I", "N", "Z", "Z"], false);
 						 set location <- {40, 40};
 						 set view_distance <- 30.0;
+						 }}
+						 
+	user_command "General Tests" {create Seller number: 2 {
+		// The performance must be 22
+						 do set_my_personality(["E", "E", "E", "E"], false);
+						 set view_distance <- 20.0;
+						 set location <- {40, 40};
 						 }}
 }
 
