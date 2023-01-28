@@ -11,10 +11,36 @@ import "buyer-seller.gaml"
 
 global {
 	
-	int nb_sellers;
+	// Vars received from parameters
+	int nb_sellers <- 1;
+	int nb_buyers <- 1;
+	int nb_items_to_buy;
+	int nb_items_to_sell;
+	list<string> teams_mbti;
+	string teams_mbti_string <- 'R,R,R,R';
+	int total_demand <- 100;
+	string market_type <- "Balanced";
+	
+	// Global environment vars
+	int cycle <- 0;	
+	int view_distance;
+	int max_cycles <- 1000;
+	string scenario <- 'LOW';	
+	
+	// Staging vars
+	int total_sellers_demand;
+	int total_buyers_demand;
 	
 	init {
 		write "new simulation created: " + name;
+		write "teams_mbti_string: " + teams_mbti_string;
+		write "nb_sellers: " + nb_sellers;
+		
+		// Set teams MBTI profile
+		teams_mbti <- list(teams_mbti_string split_with ",");
+		
+		// Calculate Market Demand
+		do calculate_market_demand(market_type, total_demand);
 		
 		// density cluster
 		create Buyer number: 1 {
@@ -73,14 +99,19 @@ global {
 	
 }
 
-experiment Buyer_Seller_Test type: gui benchmark: false  {
+experiment buyer_seller_test type: gui benchmark: false  {
 	float minimum_cycle_duration <- 0.00;
 	
 	float seed <- 1985.0;
 	
-	parameter "Number of Sellers" category:"Sellers" var: nb_sellers <- 1 among: [1,3,5,10,15,20];
-	parameter "Number of Buyers" category:"Buyers" var: nb_buyers <- 50 among: [10,50,100,200,400,500, 1280, 6400, 24320];
-	
+	// Set simulation default values
+	float seed_value <- 1985.0 with_precision 1;
+	string market_type <- "Balanced";
+	string scenario <- 'LOW';
+	int max_cycles <- 1000;
+	int view_distance <- 20;
+	int nb_sellers <- 1;
+
 	//reflex t when: every(10#cycle) {
 	//	do compact_memory;
 	//}
@@ -171,6 +202,13 @@ experiment Buyer_Seller_Test type: gui benchmark: false  {
 						 do set_my_personality(["I", "N", "Z", "Z"], false);
 						 set location <- {40, 40};
 						 set view_distance <- 30.0;
+						 }}
+						 
+	user_command "General Tests" {create Seller number: 2 {
+		// The performance must be 22
+						 do set_my_personality(["E", "E", "E", "E"], false);
+						 set view_distance <- 20.0;
+						 set location <- {40, 40};
 						 }}
 }
 

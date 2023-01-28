@@ -41,7 +41,7 @@ species Person skills: [moving]{
 	map<point, int> agents_interacted_within_cycle;
 	map<agent, float> agents_distance_norm_global;
 	
-	list<point> colleagues_in_my_view;
+	list<agent> colleagues_in_my_view;
 	
 	list set_my_personality(list<string> mbti_personality,
 							bool use_probability
@@ -125,14 +125,6 @@ species Person skills: [moving]{
 		return map<agent, float>(agents_in_my_view collect (each::self distance_to (each)));
 	}
 
-	list get_agents_from_points(list list_of_points){
-		list<agent> list_of_agents; 
-		loop agent_unique over: list_of_points{
-			add agent_closest_to(agent_unique) to: list_of_agents;
-		}
-		return list_of_agents;	
-	}
-	
 	list remove_interacted_target(list list_of_points, int cycle){
 		map<point, int> agents_within_limit ; 
 		list<point> agents_to_remove;
@@ -168,31 +160,24 @@ species Person skills: [moving]{
 		return agents_distance_norm_global;
 	}
 	
-	action calculate_score(list<point> agents_to_calculate, int cycle){
-		
-		// Remove target according to the model constraints
-		agents_to_calculate <- remove_interacted_target(agents_to_calculate, cycle);
-		
-		list<agent> agents_in_my_view;
-		agents_in_my_view <- get_agents_from_points(agents_to_calculate);
-		
+	action calculate_score(list<agent> agents_in_my_view, int cycle){
+ 
+		// We sort the list to avoid diferent values between the simulations (when a tie happen on the scores)
+		agents_in_my_view  <- agents_in_my_view sort_by(each);
 		agents_distance_norm_global <- get_agents_in_my_view(agents_in_my_view);
 		
 		// Calculate score for E-I 
 		map<agent, float> agents_e_i_score;
 		if (self.E_I contains_any ["E", "I"]) {agents_e_i_score <- get_extroversion_introversion_score(agents_in_my_view);}
-		write self.name + " - agents_e_i_score: " + agents_e_i_score;
 		
 		// Calculate score for S-N 
 		map<agent, float> agents_s_n_score ;
 		if (self.S_N contains_any ["S", "N"]) {agents_s_n_score <- get_sensing_intuition_score(agents_in_my_view);}
-		write self.name + " - agents_s_n_score: " + agents_s_n_score;
 		
 		// Calculate score for T-F
 		// In T-F dichotomy we need to consider both, the target agents and our colleagues 
 		map<agent, float> agents_t_f_score;
-		if (self.T_F contains_any ["T", "F"]) {agents_t_f_score <- get_thinking_feeling_score(agents_in_my_view, colleagues_in_my_view);}	
-		write self.name + " - agents_t_f_score: " + agents_t_f_score;
+		if (self.T_F contains_any ["T", "F"]) {agents_t_f_score <- get_thinking_feeling_score(agents_in_my_view, colleagues_in_my_view);}
 		
 		// Sum all scores
 		map<agent, float> agents_score;
@@ -201,13 +186,13 @@ species Person skills: [moving]{
 																					 (agents_s_n_score[each]*weight_s_n) +
 																					 (agents_t_f_score[each]*weight_t_f)		
 		));
-		
+
 		return agents_score;
 	}
 	
 	map<agent, float> get_extroversion_introversion_score(list<agent> agents_to_calculate){
-		map<agent, float> score_e_i;
 		
+		map<agent, float> score_e_i;
 		map<agent, float> num_interactions_with_the_agent_init <- map<agent, float>(agents_to_calculate collect (each:: 0.0));
 		
 		num_interactions_with_the_agent <- map<agent, float>((num_interactions_with_the_agent_init.keys - num_interactions_with_the_agent.keys) collect (each::num_interactions_with_the_agent_init[each]) 
@@ -297,16 +282,17 @@ species Person skills: [moving]{
 		return score_s_n;		
 	}
 		
-	map<agent, float> get_thinking_feeling_score(list<agent> agents_to_calculate, list<point> my_colleagues){
+	map<agent, float> get_thinking_feeling_score(list<agent> agents_to_calculate, list<agent> my_colleagues){
 		map<agent, float> score_t_f;
 		
-		list agents_perceived <- get_agents_from_points(my_colleagues);
-		
 		float inc_num_agents_close_to_target_agent <- 0.0;
-		map<agent, float> num_agents_close_to_target_agent;		
-	
+		map<agent, float> num_agents_close_to_target_agent;	
+		
+		// We sort the list to avoid diferent values between the simulations (when a tie happen on the scores)
+		my_colleagues  <- my_colleagues sort_by(each);
+		
 		loop target_agent over: agents_to_calculate{ // targets
-			loop agent_perceived over: agents_perceived{ // colleagues
+			loop agent_perceived over: my_colleagues{ // colleagues
 				if(point(agent_perceived) distance_to point(target_agent) < min_distance_to_exclude){
 					inc_num_agents_close_to_target_agent  <- inc_num_agents_close_to_target_agent + 1.0;	
 				}
@@ -332,7 +318,7 @@ species Person skills: [moving]{
 		return score_t_f;		
 	}
 	
-	point get_judging_perceiving(list<point> agents_to_calculate, point current_target, int cycle){
+	point get_judging_perceiving(list<agent> agents_to_calculate, point current_target, int cycle){
 		bool must_recalculate_plan;
 		point new_target;
 		
