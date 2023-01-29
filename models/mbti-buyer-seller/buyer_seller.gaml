@@ -32,10 +32,7 @@ global {
 	int total_buyers_demand;
 	
 	init {
-		write "total_demand: " + total_demand;
-		write "seed: " + seed;
-		write "nb_sellers: " + nb_sellers;
-
+		
 		// Set teams MBTI profile
 		teams_mbti <- list(teams_mbti_string split_with ",");
 		
@@ -104,7 +101,6 @@ species Seller parent: Person control: simple_bdi{
 	int view_distance;
 	
 	init{
-		write "view_distance: " + view_distance;
 		// Begin to wander
 		do add_desire(wander);
 	}
@@ -290,14 +286,14 @@ grid grille_low width: 5 height: 5 {
 	rgb color <- #white;
 }
 
-experiment buyer_seller_default type: gui keep_seed: true{
+experiment buyer_seller_default type: gui keep_seed: true autorun: false{
 	// Parameters
 	parameter "Number of Sellers" category:"Agents" var: nb_sellers <- 3 among: [1,3,8,10,15,20];
 	parameter "Number of Buyers" category:"Agents" var: nb_buyers <- 10 among: [10,50,100,200,400,500, 1280, 6400, 24320];
 	parameter "Teams MBTI" var: teams_mbti_string <- "E,R,R,R";
+	parameter "Seed" var: seed <- 0;
 	
 	// Set simulation default values
-	//float seed_value <- 1985.0 with_precision 1;
 	int nb_sellers <- 2;
 	int nb_buyers <- 100;
 	int total_demand <- 1000; // LOW
@@ -311,7 +307,7 @@ experiment buyer_seller_default type: gui keep_seed: true{
 	
 	action _init_ {		
 		create simulation with: (			
-			seed: seed_value,
+			//seed: seed_value, // Here we don'to set the seed value because we can inherit from the headless experiment
 			nb_sellers:nb_sellers,
 			nb_buyers:nb_buyers,
 			total_demand: total_demand,
@@ -329,7 +325,7 @@ experiment buyer_seller_default type: gui keep_seed: true{
 		
 		create Buyer number: nb_buyers;	
 	}
-
+	
 	output {
 		display map {
 			grid grille_low lines: #gray;

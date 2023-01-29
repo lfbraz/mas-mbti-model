@@ -7,7 +7,7 @@
 
 
 model buyer_seller_tests
-import "buyer-seller.gaml"
+import "buyer_seller.gaml"
 
 global {
 	

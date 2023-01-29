@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Experiment_plan>
- <Simulation id="1" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MAS MBTI Recruitment\models\MADM-MBTI\MADM-MBTI.gaml" finalStep="250"
- experiment="Low_Batch">
- <Parameters>
-    <Parameter name="teams_mbti" value="['E','R','R','R']" />
- </Parameters>
- </Simulation>
-</Experiment_plan>
