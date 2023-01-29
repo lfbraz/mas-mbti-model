@@ -20,7 +20,7 @@ For more details on the theory behind the implementations and the Buyer-Seller a
 - You can check the [buyer-seller](./models/mbti-buyer-seller/buyer-seller.gaml) model to explore how to use the MBTI inspired model, or you can simply import the [mbti.gaml](./models/mbti-buyer-seller/mbti.gaml) file into your own model.
 
 
-# How to run using Headless Mode?
+## How to run using Headless Mode?
 
 - Run the following command in your headless folder: `gama-headless.bat "<PATH-OF-YOUR-LOCALWORKSPACE>\headless_input\gamaDefaultMBTI.xml" /output`
 
