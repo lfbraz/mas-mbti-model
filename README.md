@@ -24,4 +24,4 @@ For more details on the theory behind the implementations and the Buyer-Seller a
 
 - Run the following command in your headless folder: `gama-headless.bat "<PATH-OF-YOUR-LOCALWORKSPACE>\headless_input\gamaDefaultMBTI.xml" /output`
 
-The [gamaDefaultMBTI.xml](./headless_input/gamaDefaultMBTI.xml) file has an example of how to run 10 simulations (nine with the same SEED and another one with a different seed) using headless mode passing some parameters (seed value is inherited from the XML file).
+The [gamaDefaultMBTI.xml](./headless_input/gamaDefaultMBTI.xml) file has an example of how to run 10 simulations (nine with the same SEED and another one with a different seed) using headless mode passing some parameters (seed value is inherited from the XML file). You can find `gama-headless.bat` in the Gama Program's File folder (usually **C:\Program Files\Gama\headless** if you use Windows).
