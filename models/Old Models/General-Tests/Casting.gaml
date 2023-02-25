@@ -78,24 +78,9 @@ species to_point{
 		write sample(point(°meter));				
 	}
 }
-species to_list{
-	init {
-		write list("E,R,R,R" split_with ",");
-		write sample(list(1));
-		write sample(list(1.0));
-		write sample(list("1"));
-		write sample(list("1.0"));
-		write sample(list(°pink));
-		write sample(list(true));
-		write sample(list(self));
-		write sample(list([]));
-		write sample(list([0]));
-		write sample(list(0::0));
-		write sample(list([0::0]));	
-		write sample(list({0,0,0}));
-		write sample(list(°meter));				
-	}
-}
+
+
+
 species to_pair{
 	init {
 		write sample(pair(1));
@@ -136,7 +121,6 @@ experiment Casting type: gui{
 	user_command "to float" {create to_float;}
 	user_command "to string" {create to_string;}
 	user_command "to point" {create to_point;}
-	user_command "to list" {create to_list;}
 	user_command "to pair" {create to_pair;}
 	user_command "to map" {create to_map;}
 }

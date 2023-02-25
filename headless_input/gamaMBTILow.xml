@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Experiment_plan>
+
+<!-- SEED 1985 - BALANCED - LOW -->
+ <Simulation id="1" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+<Simulation id="2" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="3" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,S,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="4" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,N,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="5" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,S,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="6" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,N,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="7" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,S,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="8" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,S,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="9" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,N,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="10" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,N,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+<Simulation id="11" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,S,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="12" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,S,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="13" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,N,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="14" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,N,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="15" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="R,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+
+<!-- SEED 1985 - Supply>Demand - LOW -->
+ <Simulation id="16" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+<Simulation id="17" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="18" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,S,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="19" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,N,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="20" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,S,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="21" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,N,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="22" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,S,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="23" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,S,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="24" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,N,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="25" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,N,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+<Simulation id="26" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,S,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="27" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,S,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="28" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,N,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="29" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,N,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="30" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="R,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Supply>Demand" />
+  </Parameters>
+ </Simulation>
+
+ <!-- SEED 1985 - Demand>Supply - LOW -->
+ <Simulation id="31" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+<Simulation id="32" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="33" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,S,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="34" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,N,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="35" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,S,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="36" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,N,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="37" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,S,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="38" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,S,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="39" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,N,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="40" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,N,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+<Simulation id="41" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,S,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="42" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,S,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="43" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,N,T,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="44" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,N,F,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="45" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="R,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Demand>Supply" />
+  </Parameters>
+ </Simulation>
+
+</Experiment_plan>

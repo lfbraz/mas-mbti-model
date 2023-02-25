@@ -1,0 +1,3 @@
+C:\Program Files\Gama\headless\gama-headless.bat "C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\headless_input\gamaMBTIDefault.xml" /output
+Performance 1985: 2141
+Performance 1986: 

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Experiment_plan>
+
+<!-- SEED 1985 - BALANCED - LOW -->
+ <Simulation id="1" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_sobol">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="R,R,R,R" />
+	<Parameter name="Market Type" type="STRING" value="Balanced" />
+  </Parameters>
+ </Simulation>
+
+
+</Experiment_plan>

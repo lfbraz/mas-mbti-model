@@ -1,0 +1,22 @@
+SOBOL ANALYSIS :
+##############################
+output variable : performance
+-------------------
+nb_number_of_cycles_to_return_interacted_agent : 
+first order : 0.15521282423327065 // Quanto mais perto de 1 mais importante a variável em termos de variação do output
+first order confidence : 0.28929286271757476
+Total order : 1.1095345739326008  // Quanto maior mais a influência dele conjunta com outras variáveis
+Total order confidence : 0.1729828208619815
+-------------------
+nb_min_distance_to_exclude : 
+first order : -0.05019179890145039 // Quanto mais perto de 1 mais importante a variável em termos de variação do output
+first order confidence : 0.30756362426866113
+Total order : 0.9435668736041386 // Quanto maior mais a influência dele conjunta com outras variáveis
+Total order confidence : 0.18498363591209457
+-------------------
+nb_max_number_of_visits_to_a_interacted_agent : 
+first order : 0.05384352798572605 // Quanto mais perto de 1 mais importante a variável em termos de variação do output
+first order confidence : 0.2961224841290357
+Total order : 0.8716324722246437 // Quanto maior mais a influência dele conjunta com outras variáveis
+Total order confidence : 0.22413346738748693
+-------------------

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Experiment_plan>
+ <Simulation id="1" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,R,R,R" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="2" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1986.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,R,R,R" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="3" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="4" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1986.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="5" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,R,R,R" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="6" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1986.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="I,R,R,R" />
+  </Parameters>
+ </Simulation>
+  <Simulation id="7" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1985.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+  </Parameters>
+ </Simulation>
+ <Simulation id="8" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1986.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+  </Parameters>
+ </Simulation>
+
+<Simulation id="9" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1986.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+    <Parameter name="Cycles to return to interacted agent" type="INT" value="50" />
+  </Parameters>
+ </Simulation>
+
+ <Simulation id="10" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1986.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+    <Parameter name="Cycles to return to interacted agent" type="INT" value="50" />
+  </Parameters>
+ </Simulation>
+
+ <Simulation id="11" sourcePath="C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\models\mbti-buyer-seller\experiments\buyer_seller_low.gaml" finalStep="251" seed="1986.0" experiment="buyer_seller_low_01">
+ <Parameters>
+ 	<Parameter name="Teams MBTI" type="STRING" value="E,R,R,R" />
+    <Parameter name="Cycles to return to interacted agent" type="INT" value="75" />
+  </Parameters>
+ </Simulation>
+
+</Experiment_plan>

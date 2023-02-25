@@ -17,12 +17,15 @@ species Person skills: [moving]{
 	float weight_t_f <- 1/3;
 	
 	// E-I constraints
-	int number_of_cycles_to_return_interacted_agent <- 50;
+	int number_of_cycles_to_return_interacted_agent <- 75;
 	int max_number_of_visits_to_a_interacted_agent <- 3;
+	//int number_of_cycles_to_return_interacted_agent;
+	//int max_number_of_visits_to_a_interacted_agent;
 	
     // T-F constraints
-    float min_distance_to_exclude <- 10.0;
-	
+    //int min_distance_to_exclude <- 10;
+    int min_distance_to_exclude;
+								 	
 	list my_personality;
 	
 	bool is_extroverted;
@@ -101,6 +104,16 @@ species Person skills: [moving]{
 		return mbti_personality;	
 	}
 	
+	action set_global_parameters(int nb_number_of_cycles_to_return_interacted_agent, // E-I constraints
+								 int nb_max_number_of_visits_to_a_interacted_agent, // E-I constraints
+								 int nb_min_distance_to_exclude // T-F constraints
+								 ){
+	
+	number_of_cycles_to_return_interacted_agent <- nb_number_of_cycles_to_return_interacted_agent;
+	max_number_of_visits_to_a_interacted_agent <- nb_max_number_of_visits_to_a_interacted_agent;
+	min_distance_to_exclude  <- nb_min_distance_to_exclude;
+	}
+	
 	action increment_interactions_with_agent(agent interacted_agent){
 		add interacted_agent::num_interactions_with_the_agent[interacted_agent] + 1 to:num_interactions_with_the_agent;
 	}
@@ -162,8 +175,7 @@ species Person skills: [moving]{
 	
 	action calculate_score(list<agent> agents_in_my_view, int cycle){
  
-		// We sort the list to avoid diferent values between the simulations (when a tie happen on the scores)
-		agents_in_my_view  <- agents_in_my_view sort_by(each);
+		agents_in_my_view <- agents_in_my_view sort_by(each);
 		agents_distance_norm_global <- get_agents_in_my_view(agents_in_my_view);
 		
 		// Calculate score for E-I 
@@ -186,7 +198,10 @@ species Person skills: [moving]{
 																					 (agents_s_n_score[each]*weight_s_n) +
 																					 (agents_t_f_score[each]*weight_t_f)		
 		));
-
+		
+		// We sort map to avoid diferent values between the simulations (when a tie happen on the scores) 
+		agents_score <- agents_score.pairs collect (each.key::each.value) sort_by(each.key) sort_by(each.value);
+		
 		return agents_score;
 	}
 	
@@ -213,7 +228,7 @@ species Person skills: [moving]{
 			map<agent, float> num_interactions_with_the_agent_norm <- num_interactions_with_the_agent.pairs as_map (each.key::float(get_normalized_values(each.value, num_interactions_with_the_agent, criteria_type)));
 			
 			// Calculate SCORE-E-I
-			score_e_i <- agents_distance_norm_global.pairs as_map (each.key::each.value+(num_interactions_with_the_agent_norm[each.key]));
+			score_e_i <- agents_distance_norm_global.pairs as_map (each.key::each.value+(num_interactions_with_the_agent_norm[each.key]));	
 		}		
 		
 		return score_e_i;

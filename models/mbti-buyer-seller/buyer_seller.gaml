@@ -20,7 +20,10 @@ global {
 	string teams_mbti_string;
 	int total_demand;
 	string market_type;
-	
+	int nb_number_of_cycles_to_return_interacted_agent;
+	int nb_max_number_of_visits_to_a_interacted_agent;
+	float nb_min_distance_to_exclude;
+
 	// Global environment vars
 	int cycle <- 0;	
 	int view_distance;
@@ -30,6 +33,7 @@ global {
 	// Staging vars
 	int total_sellers_demand;
 	int total_buyers_demand;
+	int performance;
 	
 	init {
 		
@@ -38,10 +42,10 @@ global {
 		
 		// Calculate Market Demand
 		do calculate_market_demand(market_type, total_demand);
+		
 	}
 	
 	action calculate_market_demand(string market_type, int total_demand){
-		
 		if (market_type="Balanced"){
 			total_sellers_demand <- (total_demand/2);
 			total_buyers_demand <- (total_demand/2);			
@@ -62,25 +66,30 @@ global {
 		nb_items_to_buy <- round(total_buyers_demand/nb_buyers);
 	}
 	
+	//reflex show_cycle{
+	//	write cycle;
+	//}
+	
 	reflex stop when:cycle=max_cycles{
 		list sellers_demand <- list(Seller collect  (each.current_demand));
-
-		write "PERFORMANCE: " + (total_sellers_demand - sum(sellers_demand))
+		
+		performance <- total_sellers_demand - sum(sellers_demand);
+		write "PERFORMANCE: " + performance 
 			  + " SCENARIO: " + scenario 
-			  + " MARKET_TYPE:" + market_type
-			  + " TEAMS MBTI: " + teams_mbti
+			  + " MARKET-TYPE:" + market_type
+			  + " TEAMS-MBTI: " + teams_mbti
+			  + " TOTAL-DEMAND: " + total_demand
+			  + " CYCLES-TO-RETURN: " + nb_number_of_cycles_to_return_interacted_agent
+			  + " MAX-VISITS-TO-AGENT: " + nb_max_number_of_visits_to_a_interacted_agent
+			  + " MIN-DISTANCE-TO-EXCLUDE: " + nb_min_distance_to_exclude
 			  + " SEED: " + seed;
 		
-		do pause;	
-	}
-	
-	reflex count{
-		cycle <- cycle + 1;
-	}
+		//do pause;
+	}	
 }
 
 species Seller parent: Person control: simple_bdi{
-
+	
 	// Define agent behavior
 	predicate wander <- new_predicate("wander");
 	predicate define_item_target <- new_predicate("define_item_target");
@@ -100,7 +109,7 @@ species Seller parent: Person control: simple_bdi{
 	
 	int view_distance;
 	
-	init{
+	init{							   
 		// Begin to wander
 		do add_desire(wander);
 	}
@@ -282,9 +291,10 @@ species Buyer skills: [moving] {
 	}
 }
 
-grid grille_low width: 5 height: 5 {
+grid grille_low width: 125 height: 125 {
 	rgb color <- #white;
 }
+
 
 experiment buyer_seller_default type: gui keep_seed: true autorun: false{
 	// Parameters
@@ -302,12 +312,12 @@ experiment buyer_seller_default type: gui keep_seed: true autorun: false{
 	int max_cycles <- 1000;
 	int view_distance <- 20;
 	
-	float seed_value <- 1985.0;
+	float seed_value <- 1985.0 with_precision 1;
     float seed <- seed_value; // force the value of the seed.
 	
 	action _init_ {		
 		create simulation with: (			
-			//seed: seed_value, // Here we don'to set the seed value because we can inherit from the headless experiment
+			seed: seed_value, // Here we don'to set the seed value because we can inherit from the headless experiment
 			nb_sellers:nb_sellers,
 			nb_buyers:nb_buyers,
 			total_demand: total_demand,
@@ -316,7 +326,7 @@ experiment buyer_seller_default type: gui keep_seed: true autorun: false{
 			max_cycles: max_cycles,
 			view_distance: view_distance,
 			teams_mbti_string: "E,R,R,R");
-			
+		
 		create Seller number: nb_sellers {
 			do set_my_personality(teams_mbti, false); // Not using probability
 			do show_my_personality();
