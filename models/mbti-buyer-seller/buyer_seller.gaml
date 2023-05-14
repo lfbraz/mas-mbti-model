@@ -66,10 +66,6 @@ global {
 		nb_items_to_buy <- round(total_buyers_demand/nb_buyers);
 	}
 	
-	//reflex show_cycle{
-	//	write cycle;
-	//}
-	
 	reflex stop when:cycle=max_cycles{
 		list sellers_demand <- list(Seller collect  (each.current_demand));
 		
@@ -113,7 +109,7 @@ species Seller parent: Person control: simple_bdi{
 		// Begin to wander
 		do add_desire(wander);
 	}
-	
+
 	//if the agent perceive a buyer in its neighborhood, it adds a belief concerning its location and remove its wandering intention
 	perceive target:Buyer in: view_distance {
 		// Seller only focus on buyer if it has demand
