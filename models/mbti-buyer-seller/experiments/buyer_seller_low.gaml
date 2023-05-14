@@ -28,7 +28,8 @@ global {
 			do calculate_market_demand(market_type, total_demand);
 			
 			create Seller number: nb_sellers {
-					do set_my_personality(teams_mbti, false); // Not using probability			
+					//do set_my_personality(teams_mbti, false); // Not using probability
+					do set_my_personality(teams_mbti, true); // Using probability
 					set view_distance <- 20;
 					do set_global_parameters(nb_number_of_cycles_to_return_interacted_agent, 
 											 nb_max_number_of_visits_to_a_interacted_agent, 
@@ -40,7 +41,7 @@ global {
 	}
 }
 
-experiment buyer_seller_low_01 type: gui keep_seed: true autorun: true{
+experiment buyer_seller_low_balanced type: gui keep_seed: true autorun: true{
 	// Parameters
 	parameter "Teams MBTI" var: teams_mbti_string init: "E,R,R,R";
 	parameter "Market Type" var: market_type init: "Balanced";
@@ -55,6 +56,10 @@ experiment buyer_seller_low_01 type: gui keep_seed: true autorun: true{
 	parameter "Max Cycle" var: max_cycles init: 250;
 	parameter "View Distance" var: view_distance init: 20;
 	
+	reflex t when: every(100#cycle) {
+		do compact_memory;
+	}
+	
 	output {
 		display map {
 			grid grille_low lines: #gray;
@@ -64,6 +69,62 @@ experiment buyer_seller_low_01 type: gui keep_seed: true autorun: true{
 	}
 }
 
+experiment buyer_seller_low_demand_greater_supply type: gui keep_seed: true autorun: true{
+	// Parameters
+	parameter "Teams MBTI" var: teams_mbti_string init: "E,R,R,R";
+	parameter "Market Type" var: market_type init: "Demand>Supply";
+	parameter "Cycles to return to interacted agent" var: nb_number_of_cycles_to_return_interacted_agent init: 75;
+	parameter "Max visits to a interacted agent" var: nb_max_number_of_visits_to_a_interacted_agent init: 3;
+	parameter "Min Distance to Exclude" var: nb_min_distance_to_exclude init: 10.0;
+
+	parameter "Sellers" var: nb_sellers init: 78;
+	parameter "Buyers" var: nb_buyers init: 313;
+	parameter "Total Demand" var: total_demand init: 4688; // LOW
+	parameter "Scenario" var: scenario init: "LOW";
+	parameter "Max Cycle" var: max_cycles init: 250;
+	parameter "View Distance" var: view_distance init: 20;
+	
+	reflex t when: every(100#cycle) {
+		do compact_memory;
+	}
+	
+	output {
+		display map {
+			grid grille_low lines: #gray;
+			species Seller aspect:default;
+			species Buyer aspect:default;
+		}
+	}
+}
+
+
+experiment buyer_seller_low_supply_greater_demand type: gui keep_seed: true autorun: true{
+	// Parameters
+	parameter "Teams MBTI" var: teams_mbti_string init: "E,R,R,R";
+	parameter "Market Type" var: market_type init: "Demand>Supply";
+	parameter "Cycles to return to interacted agent" var: nb_number_of_cycles_to_return_interacted_agent init: 75;
+	parameter "Max visits to a interacted agent" var: nb_max_number_of_visits_to_a_interacted_agent init: 3;
+	parameter "Min Distance to Exclude" var: nb_min_distance_to_exclude init: 10.0;
+
+	parameter "Sellers" var: nb_sellers init: 78;
+	parameter "Buyers" var: nb_buyers init: 313;
+	parameter "Total Demand" var: total_demand init: 4688; // LOW
+	parameter "Scenario" var: scenario init: "LOW";
+	parameter "Max Cycle" var: max_cycles init: 250;
+	parameter "View Distance" var: view_distance init: 20;
+	
+	reflex t when: every(100#cycle) {
+		do compact_memory;
+	}
+	
+	output {
+		display map {
+			grid grille_low lines: #gray;
+			species Seller aspect:default;
+			species Buyer aspect:default;
+		}
+	}
+}
 
 experiment buyer_seller_low_sobol type: batch keep_seed: true until: (time>max_cycles) {
 	parameter "Teams MBTI" var: teams_mbti_string init: "R,R,R,R";

@@ -1,3 +1,8 @@
 C:\Program Files\Gama\headless\gama-headless.bat "C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\headless_input\gamaMBTIDefault.xml" /output
 Performance 1985: 2141
 Performance 1986: 
+
+gama-headless.bat "C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\headless_input\gamaMBTILow-Balanced.xml" /output
+
+gama-headless.bat "C:\Users\lubraz\OneDrive\Master Degree\Workspace\Gama\MBTI\headless_input\gamaMBTILow-Balanced-01.xml" /output
+

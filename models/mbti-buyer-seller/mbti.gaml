@@ -27,6 +27,7 @@ species Person skills: [moving]{
     int min_distance_to_exclude;
 								 	
 	list my_personality;
+	list<string> my_original_personality;
 	
 	bool is_extroverted;
 	bool is_sensing; 
@@ -45,23 +46,36 @@ species Person skills: [moving]{
 	map<agent, float> agents_distance_norm_global;
 	
 	list<agent> colleagues_in_my_view;
+	bool must_use_probability;
+	
+	reflex must_change_personality when: every(25#cycle) and must_use_probability {
+		do set_my_personality(self.my_original_personality, true);
+	}
+	
+	//reflex show_personality {
+	//	do show_my_personality();
+	//}
 	
 	list set_my_personality(list<string> mbti_personality,
 							bool use_probability
 	){
+		
+		list<string> mbti_personality_treated <- copy(mbti_personality);
+		self.my_original_personality <- mbti_personality_treated;
+		must_use_probability <- use_probability;
+		
 		// Check if the MBTI should be randomized
 		if(mbti_personality contains "R"){
-			mbti_personality <- randomize_personality(mbti_personality);
+			mbti_personality_treated <- randomize_personality(mbti_personality);
 		}
 		
-		E_I <- mbti_personality at 0;
-		S_N <- mbti_personality at 1;
-		T_F <- mbti_personality at 2;
-		J_P <- mbti_personality at 3;
-		
+		E_I <- mbti_personality_treated at 0;
+		S_N <- mbti_personality_treated at 1;
+		T_F <- mbti_personality_treated at 2;
+		J_P <- mbti_personality_treated at 3;
+				
 		self.my_personality <- [];
 	
-		
 		if (use_probability){
 			// An seller agent has 80% of probabability to keep its original MBTI personality
 			is_extroverted <- E_I = 'E' ? flip(0.8) : flip(0.2);
@@ -73,14 +87,14 @@ species Person skills: [moving]{
 			is_extroverted <- E_I = 'E' ? true : false;
 			is_sensing <- S_N =  'S' ? true : false;
 			is_thinking <- T_F =  'T' ? true : false;
-			is_judging <- J_P = 'J' ? true : false;
+			is_judging <- J_P = 'J' ? true : false;		
 		}
 		
 		add is_extroverted ? "E":"I" to: self.my_personality;
 		add is_sensing ? "S":"N" to: self.my_personality;
 		add is_thinking ? "T":"F" to: self.my_personality;
 		add is_judging ? "J":"P" to: self.my_personality;
-		
+				
 		return self.my_personality;
 	}
 	
