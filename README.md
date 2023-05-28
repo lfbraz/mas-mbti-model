@@ -7,7 +7,7 @@ For more details on the theory behind the implementations and the Buyer-Seller a
 - [Using MBTI Agents to Simulate Human Behavior in a Work Context](https://link.springer.com/chapter/10.1007/978-3-030-92843-8_25) - *Springer*
 - [Using the Myers-Briggs Type Indicator (MBTI) for Modeling Multiagent Systems](https://www.seer.ufrgs.br/rita/article/view/RITA_Vol29_Nr1_42) - *Revista de Informática Teórica e Aplicada*
 - [Extending BEN architecture for modeling MBTI agents](https://ut3-toulouseinp.hal.science/hal-03500245/) - *HAL Open Science*
-- [Simulating Work Teams using MBTI agents - *MABS 2022 – The 23rd International Workshop on Multi-Agent-Based Simulation](https://link.springer.com/book/10.1007/978-3-031-22947-3)*
+- [Simulating Work Teams using MBTI agents - MABS 2022 – The 23rd International Workshop on Multi-Agent-Based Simulation](https://link.springer.com/book/10.1007/978-3-031-22947-3)
 - Um estudo do Myers-Briggs Type Indicator (MBTI) para modelagem de sistemas multiagentes no apoio a processos de recrutamento e seleção nas empresas (Best Papers) - *14th WESAAC - UTFPR*
 
 ## Prerequisites
